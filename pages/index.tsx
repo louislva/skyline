@@ -105,6 +105,58 @@ const TIMELINES: {
     },
   },
   justJay: getJustPersonFeed("jay.bsky.team"),
+  oneFromEach: {
+    icon: "people",
+    name: "One from each",
+    produceFeed: async ({ agent, egoIdentifier, cursor }) => {
+      const follows = await getFollows(agent, egoIdentifier);
+
+      let postsPerUser = await Promise.all(
+        follows.map((follow) =>
+          agent
+            .getAuthorFeed({
+              actor: follow.handle,
+              cursor,
+              limit: 9,
+            })
+            .then((response) => {
+              if (response.success) {
+                return response.data.feed
+                  .filter((item) => !item.reason && !item.reply)
+                  .map((item) => item.post);
+              } else {
+                return [];
+              }
+            })
+        )
+      );
+      let epochs: PostView[][] = [];
+
+      let run = true;
+      while (run) {
+        run = false;
+        epochs.push([]);
+        const epoch = epochs[epochs.length - 1];
+        // Get the newest post from each user
+        postsPerUser.forEach((userPosts) => {
+          if (userPosts.length > 0) {
+            epoch.push(userPosts.shift()!);
+            run = true;
+          }
+        });
+        // Shuffle the posts in the epoch
+        epoch.sort(() => Math.random() - 0.5);
+      }
+
+      return {
+        cursor: undefined,
+        posts: epochs
+          .slice(0, 3)
+          .flat()
+          .map((post) => ({ postView: post } as SkylinePostType)),
+      };
+    },
+  },
 };
 type TimelineIdType = keyof typeof TIMELINES;
 
@@ -121,6 +173,7 @@ function TimelineScreen(props: {
 
   useEffect(() => {
     setCursor(undefined);
+    setPosts([]);
 
     TIMELINES[timelineId]
       .produceFeed({
@@ -249,10 +302,6 @@ function Post(props: {
         });
     }
   }, [record.reply, disableParentLoading]);
-
-  if (author.handle === "lilguy.online") {
-    console.log("lilguy", post);
-  }
 
   return (
     <>
