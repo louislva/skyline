@@ -15,3 +15,7 @@
   -moz-user-select: none;
   -ms-user-select: none;
 }
+
+.material-icons {
+  font-size: inherit;
+}

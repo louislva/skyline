@@ -1,16 +1,112 @@
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { AtpAgentLoginOpts, BskyAgent } from "@atproto/api";
+import { BlobRef, BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-
-// TYPES
-type TimelineIdType = "chronological";
+import {
+  PostView,
+  ThreadViewPost,
+} from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import moment from "moment";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 // HELPERS
-function paginateUntil(
-  fn: (cursor: string | undefined) => Promise<any[]>,
-  cursor: string | null = null
-) {}
+async function getFollows(
+  agent: BskyAgent,
+  identifier: string,
+  maxPages: number = 10
+) {
+  let follows: ProfileView[] = [];
+  let cursor;
+  for (let i = 0; i < maxPages; i++) {
+    const response = await agent.getFollows({
+      actor: identifier,
+      cursor,
+    });
+
+    if (response.success) {
+      follows = follows.concat(response.data.follows);
+      if (!response.data.cursor || response.data.follows.length === 0) {
+        break;
+      }
+      cursor = response.data.cursor;
+    } else {
+      // TODO: Handle error
+      break;
+    }
+  }
+  return follows;
+}
+
+function getJustPersonFeed(handle: string): TimelineDefinitionType {
+  return {
+    icon: "toys",
+    name: "Just @" + handle,
+    produceFeed: async ({ agent, cursor }) => {
+      const response = await agent.getAuthorFeed({
+        actor: handle,
+        cursor,
+      });
+      if (response.success) {
+        return {
+          posts: response.data.feed
+            .filter((item) => {
+              if (item.post) return true;
+              else {
+                console.log("NO POST", item);
+                return false;
+              }
+            })
+            .map((item) => ({
+              postView: item.post,
+            })),
+          cursor: response.data.cursor,
+        };
+      } else {
+        throw new Error("Failed to get timeline");
+      }
+    },
+  };
+}
+
+type SkylinePostType = {
+  postView: PostView;
+};
+type TimelineDefinitionType = {
+  icon: string;
+  name: string;
+  produceFeed: (params: {
+    agent: BskyAgent;
+    egoIdentifier: string;
+    cursor: string | undefined;
+  }) => Promise<{
+    posts: SkylinePostType[];
+    cursor: string | undefined;
+  }>;
+};
+
+// TIMELINES
+const TIMELINES: {
+  [id: string]: TimelineDefinitionType;
+} = {
+  bskyDefault: {
+    icon: "home",
+    name: "Default",
+    produceFeed: async ({ agent, cursor }) => {
+      const response = await agent.getTimeline({
+        cursor,
+      });
+      if (response.success) {
+        return {
+          posts: response.data.feed.map((item) => ({ postView: item.post })),
+          cursor: response.data.cursor,
+        };
+      } else {
+        throw new Error("Failed to get timeline");
+      }
+    },
+  },
+  justJay: getJustPersonFeed("jay.bsky.team"),
+};
+type TimelineIdType = keyof typeof TIMELINES;
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
@@ -19,39 +115,227 @@ function TimelineScreen(props: {
   agent: BskyAgent;
 }) {
   const { identifier, setIdentifier, agent } = props;
-  const [timelineId, setTimelineId] = useState<TimelineIdType>("chronological");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [timelineId, setTimelineId] = useState<TimelineIdType>("bskyDefault");
+  const [posts, setPosts] = useState<SkylinePostType[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    (async () => {
-      let follows: ProfileView[] = [];
-      let cursor;
-      for (let i = 0; i < 10; i++) {
-        const response = await agent.getFollows({
-          actor: identifier,
-          cursor,
-        });
+    setCursor(undefined);
 
-        if (response.success) {
-          follows = follows.concat(response.data.follows);
-          if (!response.data.cursor || response.data.follows.length === 0) {
-            break;
-          }
-          cursor = response.data.cursor;
-        } else {
-          // TODO: Handle error
-          break;
-        }
-        console.log(i, cursor, follows);
-      }
-    })();
-  }, []);
+    TIMELINES[timelineId]
+      .produceFeed({
+        agent,
+        egoIdentifier: identifier,
+        cursor,
+      })
+      .then((result) => setPosts(result.posts));
+  }, [timelineId]);
+
+  useEffect(
+    () => console.log("timelineId", timelineId, "posts", posts),
+    [timelineId, posts]
+  );
 
   return (
     <div>
-      {/* <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
-      <Timeline posts={posts} /> */}
+      <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
+      <Timeline key={timelineId} agent={agent} posts={posts} />
     </div>
+  );
+}
+function TimelinePicker(props: {
+  timelineId: TimelineIdType;
+  setTimelineId: (timelineId: TimelineIdType) => void;
+}) {
+  const { timelineId, setTimelineId } = props;
+  return (
+    <div className="flex flex-col md:flex-row justify-start">
+      {Object.keys(TIMELINES).map((id) => (
+        <button
+          key={id}
+          className={`p-2 flex flex-row items-center ${
+            id === timelineId ? "bg-blue-500 text-white" : ""
+          }`}
+          onClick={() => setTimelineId(id as TimelineIdType)}
+        >
+          <span className="material-icons mr-2">{TIMELINES[id].icon}</span>
+          <span>{TIMELINES[id].name}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+function Timeline(props: { agent: BskyAgent; posts: SkylinePostType[] }) {
+  const { posts, agent } = props;
+
+  return (
+    <div className="max-w-xl mx-auto border border-gray-300 rounded-xl mt-4">
+      {posts.map((post, index) => (
+        <Post
+          agent={agent}
+          key={post.postView.cid + "-index-" + index}
+          post={post}
+        />
+      ))}
+    </div>
+  );
+}
+function Post(props: {
+  agent: BskyAgent;
+  post: SkylinePostType;
+  disableParentLoading?: boolean;
+  hasChildren?: boolean;
+}) {
+  const { agent, post, disableParentLoading, hasChildren } = props;
+  const author = post.postView.author;
+  const embed:
+    | {
+        images?:
+          | {
+              alt: string;
+              fullsize: string;
+              thumb: string;
+            }[]
+          | undefined;
+      }
+    | undefined = post.postView.embed as any;
+  const record: {
+    text: string;
+    createdAt: string;
+    reply?: {
+      parent: {
+        cid: string;
+        uri: string;
+      };
+      root: {
+        cid: string;
+        uri: string;
+      };
+    };
+    embed?: {
+      $type: "app.bsky.embed.images" | string;
+      images?: {
+        alt: string;
+        image: BlobRef;
+      }[];
+    };
+  } = post.postView.record as any;
+
+  const bskyLink = `https://staging.bsky.app/profile/${author.handle}/post/${
+    post.postView.uri.split("/").slice(-1)[0]
+  }`;
+
+  const [replyPosts, setReplyPosts] = useState<SkylinePostType[]>([]);
+
+  useEffect(() => {
+    if (record.reply && !disableParentLoading) {
+      agent
+        .getPostThread({
+          uri: record.reply.parent.uri,
+        })
+        .then((response) => {
+          let newPosts = [];
+          if (response.success) {
+            let node: ThreadViewPost | null = response.data.thread.post
+              ? (response.data.thread as ThreadViewPost)
+              : null;
+            while (node) {
+              newPosts.unshift({ postView: node.post as PostView });
+              node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
+            }
+          }
+
+          setReplyPosts(newPosts);
+        });
+    }
+  }, [record.reply, disableParentLoading]);
+
+  if (author.handle === "lilguy.online") {
+    console.log("lilguy", post);
+  }
+
+  return (
+    <>
+      {replyPosts.slice(0, 1).map((reply) => (
+        <Post
+          key={reply.postView.cid}
+          agent={agent}
+          post={reply}
+          disableParentLoading
+          hasChildren
+        />
+      ))}
+      {replyPosts.length > 2 && (
+        <div className="mt-4 mb-1 px-4 flex flex-row items-center text-sm mb-4 text-gray-700">
+          <div className="text-xl mr-1 -mt-2">...</div>
+          {replyPosts.length - 2} more replies{" "}
+          <div className="text-xl ml-1 -mt-2">...</div>
+        </div>
+      )}
+      {replyPosts.length > 1 &&
+        replyPosts
+          .slice(-1)
+          .map((reply) => (
+            <Post
+              key={reply.postView.cid}
+              agent={agent}
+              post={reply}
+              disableParentLoading
+              hasChildren
+            />
+          ))}
+      <Link href={bskyLink} target="_blank">
+        <div
+          className={
+            "p-4 overflow-hidden " +
+            (hasChildren ? "border-none pb-0 " : "border-b ")
+          }
+        >
+          {/* Reply row */}
+
+          {record.reply && (
+            <div className="flex flex-row items-center text-sm mb-4 text-gray-700">
+              <div className="material-icons mr-1">reply</div>
+              <div>In reply to</div>
+            </div>
+          )}
+          {/* Profile row */}
+          <div className="flex flex-row">
+            {/* Pfp */}
+            {author.avatar && (
+              <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
+                <img src={author.avatar} alt={author.name + "'s avatar"} />
+              </div>
+            )}
+            {/* Name / handle */}
+            <div className="flex flex-col">
+              <div className="font-semibold">{author.displayName}</div>
+              <div className="text-gray-500">@{author.handle}</div>
+            </div>
+            {/* timestamp */}
+            <div className="flex-grow text-right text-gray-500">
+              {moment(post.postView.indexedAt).fromNow()}
+            </div>
+          </div>
+          {/* Content row */}
+          <div className="mt-2">{record.text}</div>
+          {/* Embeds row */}
+          {embed?.images && (
+            <div className="mt-2 flex flex-row h-72 gap-4">
+              {embed.images.slice(0, 3).map((image) => (
+                <div className="flex-1 rounded-md overflow-hidden">
+                  <img
+                    src={image.fullsize}
+                    alt={image.alt}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Link>
+    </>
   );
 }
 
