@@ -1,3 +1,4 @@
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { BlobRef, BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
 import {
@@ -35,6 +36,50 @@ async function getFollows(
   }
   return follows;
 }
+async function mergeConversations(
+  agent: BskyAgent,
+  posts: SkylinePostType[]
+): Promise<SkylinePostType[]> {
+  // First, load all the replies
+  await Promise.all(
+    posts.map(async (post) => {
+      const record = post.postView.record as RecordType;
+      if (record.reply) {
+        // Make sure the parent post is in the list
+        const response = await agent.getPostThread({
+          uri: record.reply.parent.uri,
+        });
+
+        let newPosts = [];
+        if (response.success) {
+          let node: ThreadViewPost | null = response.data.thread.post
+            ? (response.data.thread as ThreadViewPost)
+            : null;
+          while (node) {
+            newPosts.unshift({ postView: node.post as PostView });
+            node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
+          }
+        }
+
+        post.replyingTo = newPosts;
+      }
+
+      return;
+    })
+  );
+
+  // Then, remove all replyingTo posts from the root
+  let newPosts = posts.slice();
+  posts.forEach((post) => {
+    post.replyingTo?.forEach((replyingToPost) => {
+      newPosts = newPosts.filter(
+        (p) => p.postView.cid !== replyingToPost.postView.cid
+      );
+    });
+  });
+
+  return newPosts;
+}
 
 function getJustPersonFeed(handle: string): TimelineDefinitionType {
   return {
@@ -67,8 +112,35 @@ function getJustPersonFeed(handle: string): TimelineDefinitionType {
   };
 }
 
+type RecordType =
+  | {
+      text: string;
+      createdAt: string;
+      reply?: {
+        parent: {
+          cid: string;
+          uri: string;
+        };
+        root: {
+          cid: string;
+          uri: string;
+        };
+      };
+      embed?: {
+        $type: "app.bsky.embed.images" | string;
+        images?: {
+          alt: string;
+          image: BlobRef;
+        }[];
+      };
+    }
+  | any;
 type SkylinePostType = {
-  postView: PostView;
+  postView: PostView & {
+    record: RecordType;
+  };
+  replyingTo?: SkylinePostType[];
+  notRoot?: true;
 };
 type TimelineDefinitionType = {
   icon: string;
@@ -105,6 +177,11 @@ const TIMELINES: {
     },
   },
   justJay: getJustPersonFeed("jay.bsky.team"),
+  justLouis: {
+    ...getJustPersonFeed("louis02x.bsky.social"),
+    icon: "star",
+    name: "Best Posts on Bluesky",
+  },
   oneFromEach: {
     icon: "people",
     name: "One from each",
@@ -170,29 +247,44 @@ function TimelineScreen(props: {
   const [timelineId, setTimelineId] = useState<TimelineIdType>("bskyDefault");
   const [posts, setPosts] = useState<SkylinePostType[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setCursor(undefined);
     setPosts([]);
+    setLoading(true);
 
+    console.time("produceFeed");
     TIMELINES[timelineId]
       .produceFeed({
         agent,
         egoIdentifier: identifier,
         cursor,
       })
-      .then((result) => setPosts(result.posts));
+      .then(async (result) => {
+        console.timeEnd("produceFeed");
+        const postsSliced = result.posts.slice(0, 50);
+        console.time("mergeConversations");
+        const postsMerged = await mergeConversations(agent, postsSliced);
+        console.timeEnd("mergeConversations");
+        setPosts(postsMerged);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
   }, [timelineId]);
-
-  useEffect(
-    () => console.log("timelineId", timelineId, "posts", posts),
-    [timelineId, posts]
-  );
 
   return (
     <div>
       <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
-      <Timeline key={timelineId} agent={agent} posts={posts} />
+      <Timeline
+        key={timelineId}
+        agent={agent}
+        posts={posts}
+        loading={loading}
+      />
     </div>
   );
 }
@@ -218,18 +310,32 @@ function TimelinePicker(props: {
     </div>
   );
 }
-function Timeline(props: { agent: BskyAgent; posts: SkylinePostType[] }) {
-  const { posts, agent } = props;
+function Timeline(props: {
+  agent: BskyAgent;
+  posts: SkylinePostType[];
+  loading: boolean;
+}) {
+  const { posts, agent, loading } = props;
 
   return (
     <div className="max-w-xl mx-auto border border-gray-300 rounded-xl mt-4">
-      {posts.map((post, index) => (
-        <Post
-          agent={agent}
-          key={post.postView.cid + "-index-" + index}
-          post={post}
-        />
-      ))}
+      {loading ? (
+        <div className="flex flex-row justify-center items-center text-3xl py-32">
+          <LoadingSpinner
+            containerClassName="w-12 h-12 mr-4"
+            dotClassName="bg-black/70"
+          />
+          <div className="text-black/70">Loading...</div>
+        </div>
+      ) : (
+        posts.map((post, index) => (
+          <Post
+            agent={agent}
+            key={post.postView.cid + "index" + index}
+            post={post}
+          />
+        ))
+      )}
     </div>
   );
 }
@@ -252,62 +358,19 @@ function Post(props: {
           | undefined;
       }
     | undefined = post.postView.embed as any;
-  const record: {
-    text: string;
-    createdAt: string;
-    reply?: {
-      parent: {
-        cid: string;
-        uri: string;
-      };
-      root: {
-        cid: string;
-        uri: string;
-      };
-    };
-    embed?: {
-      $type: "app.bsky.embed.images" | string;
-      images?: {
-        alt: string;
-        image: BlobRef;
-      }[];
-    };
-  } = post.postView.record as any;
+  const record: RecordType = post.postView.record as any;
 
   const bskyLink = `https://staging.bsky.app/profile/${author.handle}/post/${
     post.postView.uri.split("/").slice(-1)[0]
   }`;
 
-  const [replyPosts, setReplyPosts] = useState<SkylinePostType[]>([]);
-
-  useEffect(() => {
-    if (record.reply && !disableParentLoading) {
-      agent
-        .getPostThread({
-          uri: record.reply.parent.uri,
-        })
-        .then((response) => {
-          let newPosts = [];
-          if (response.success) {
-            let node: ThreadViewPost | null = response.data.thread.post
-              ? (response.data.thread as ThreadViewPost)
-              : null;
-            while (node) {
-              newPosts.unshift({ postView: node.post as PostView });
-              node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
-            }
-          }
-
-          setReplyPosts(newPosts);
-        });
-    }
-  }, [record.reply, disableParentLoading]);
+  const replyPosts: SkylinePostType[] = post.replyingTo || [];
 
   return (
     <>
       {replyPosts.slice(0, 1).map((reply) => (
         <Post
-          key={reply.postView.cid}
+          key={reply.postView.cid + "as child to" + post.postView.cid}
           agent={agent}
           post={reply}
           disableParentLoading
