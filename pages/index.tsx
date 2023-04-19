@@ -433,7 +433,12 @@ function Post(props: {
             {/* Name / handle */}
             <div className="flex flex-col">
               <div className="font-semibold">{author.displayName}</div>
-              <div className="text-gray-500">@{author.handle}</div>
+              <div className="text-gray-500">
+                {author.handle ===
+                "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
+                  ? "i'm an asshole 💩"
+                  : "@" + author.handle}
+              </div>
             </div>
             {/* timestamp */}
             <div className="flex-grow text-right text-gray-500">
