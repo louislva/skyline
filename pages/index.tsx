@@ -219,8 +219,8 @@ function makeOneFromEachFeed(): TimelineDefinitionType {
   };
 }
 function makeEmbeddingsFeed(
-  positivePrompt: string,
-  negativePrompt: string
+  positivePrompt: string | null,
+  negativePrompt: string | null
 ): TimelineDefinitionType {
   return {
     icon: "trending_up",
@@ -252,7 +252,7 @@ function makeEmbeddingsFeed(
                 console.log(text);
                 return text;
               })
-              .concat([positivePrompt, negativePrompt]),
+              .concat([positivePrompt || "says", negativePrompt || "says"]),
           }),
         });
         if (!embeddingsResponse.ok) throw new Error("Failed to do AI!!");
@@ -314,7 +314,6 @@ type RecordType = {
     }[];
   };
 };
-
 type SkylinePostType = {
   // Post itself
   postView: PostView & {
@@ -342,6 +341,9 @@ type TimelineDefinitionType = {
     cursor: string | undefined;
   }>;
 };
+type TimelinesType = {
+  [id: string]: TimelineDefinitionType;
+};
 
 // TIMELINES
 const TIMELINES: {
@@ -360,7 +362,7 @@ const TIMELINES: {
       "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
   },
   danielAndLump: {
-    ...makeEmbeddingsFeed("Daniel Brottman or Lump", "says"),
+    ...makeEmbeddingsFeed("Daniel Brottman or Lump", null),
     icon: "face",
     name: "Daniel and Lump",
     description: "Told the AI to look for Daniel Brottman and Lump",
@@ -376,47 +378,22 @@ function TimelineScreen(props: {
 }) {
   const { identifier, setIdentifier, agent } = props;
   const [timelineId, setTimelineId] = useState<TimelineIdType>("bskyDefault");
-  const [posts, setPosts] = useState<SkylinePostType[]>([]);
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    setCursor(undefined);
-    setPosts([]);
-    setLoading(true);
-
-    console.time("produceFeed");
-    TIMELINES[timelineId]
-      .produceFeed({
-        agent,
-        egoIdentifier: identifier,
-        cursor,
-      })
-      .then(async (result) => {
-        console.timeEnd("produceFeed");
-        const postsSliced = result.posts;
-        console.time("mergeConversationsFirst10");
-        mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
-          console.timeEnd("mergeConversationsFirst10");
-          setPosts(postsMerged);
-        });
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [timelineId]);
+  const [timelines, setTimelines] = useState<TimelinesType>(TIMELINES);
 
   return (
     <div className="w-full flex flex-col items-center px-2">
       <Title />
-      <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
+      <TimelinePicker
+        timelineId={timelineId}
+        setTimelineId={setTimelineId}
+        timelines={timelines}
+      />
       <Timeline
         key={timelineId}
+        timelineId={timelineId}
         agent={agent}
-        posts={posts}
-        loading={loading}
+        identifier={identifier}
+        timelines={timelines}
       />
     </div>
   );
@@ -447,15 +424,16 @@ function Title() {
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
+  timelines: typeof TIMELINES;
 }) {
-  const { timelineId, setTimelineId } = props;
+  const { timelineId, setTimelineId, timelines } = props;
   const [hoveredTimelineId, setHoveredTimelineId] =
     useState<TimelineIdType | null>(null);
 
   return (
     <div className="flex flex-col items-center mb-4">
       <div className="flex flex-col lg:flex-row justify-start rounded-md border overflow-hidden">
-        {Object.keys(TIMELINES).map((id, index) => {
+        {Object.keys(timelines).map((id, index) => {
           const isSelected = id === timelineId;
 
           return (
@@ -478,8 +456,8 @@ function TimelinePicker(props: {
                 setHoveredTimelineId(null);
               }}
             >
-              <span className="material-icons mr-2">{TIMELINES[id].icon}</span>
-              <span>{TIMELINES[id].name}</span>
+              <span className="material-icons mr-2">{timelines[id].icon}</span>
+              <span>{timelines[id].name}</span>
             </button>
           );
         })}
@@ -487,8 +465,8 @@ function TimelinePicker(props: {
 
       {hoveredTimelineId && (
         <div className="max-w-xl text-sm text-black/70 mt-2 text-center">
-          <b>{TIMELINES[hoveredTimelineId].name}:</b>{" "}
-          {TIMELINES[hoveredTimelineId].description}
+          <b>{timelines[hoveredTimelineId].name}:</b>{" "}
+          {timelines[hoveredTimelineId].description}
         </div>
       )}
     </div>
@@ -496,10 +474,43 @@ function TimelinePicker(props: {
 }
 function Timeline(props: {
   agent: BskyAgent;
-  posts: SkylinePostType[];
-  loading: boolean;
+  identifier: string;
+  timelineId: TimelineIdType;
+  timelines: TimelinesType;
 }) {
-  const { posts, agent, loading } = props;
+  const { agent, identifier, timelineId, timelines } = props;
+
+  const [posts, setPosts] = useState<SkylinePostType[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setCursor(undefined);
+    setPosts([]);
+    setLoading(true);
+
+    console.time("produceFeed");
+    timelines[timelineId]
+      .produceFeed({
+        agent,
+        egoIdentifier: identifier,
+        cursor,
+      })
+      .then(async (result) => {
+        console.timeEnd("produceFeed");
+        const postsSliced = result.posts;
+        console.time("mergeConversationsFirst10");
+        mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
+          console.timeEnd("mergeConversationsFirst10");
+          setPosts(postsMerged);
+        });
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [timelineId]);
 
   return (
     <div className="border-2 w-full sm:w-136 border-gray-300 rounded-xl mb-8 overflow-hidden">
@@ -711,8 +722,9 @@ function LoginScreen(props: {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
+      <Title />
       {/* An offset equal to the security info (ish) */}
-      <div className="h-72" />
+      <div className="h-32" />
       {/* The title */}
       <h1 className="text-3xl font-bold mb-6">Login to Bluesky</h1>
       {/* The login form */}
