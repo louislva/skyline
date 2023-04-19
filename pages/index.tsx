@@ -224,8 +224,8 @@ function makeEmbeddingsFeed(
 ): TimelineDefinitionType {
   return {
     icon: "trending_up",
-    name: "Algo",
-    description: "AI, bitch!",
+    name: "AI feed",
+    description: `Posts like "${positivePrompt}" and unlike "${negativePrompt}"`,
     produceFeed: async ({ agent, cursor }) => {
       const response = await agent.getTimeline({
         cursor,
@@ -349,7 +349,22 @@ const TIMELINES: {
 } = {
   bskyDefault: makeFollowingFeed(),
   oneFromEach: makeOneFromEachFeed(),
-  algo: makeEmbeddingsFeed("Daniel Brottman", "Lump"),
+  wholesome: {
+    ...makeEmbeddingsFeed(
+      "Wholesome tweet, kindness, love, fun banter",
+      "Angry tweets, with politics, people talking about gender & dating, etc."
+    ),
+    icon: "favorite",
+    name: "Wholesome feed",
+    description:
+      "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
+  },
+  danielAndLump: {
+    ...makeEmbeddingsFeed("Daniel Brottman or Lump", "says"),
+    icon: "face",
+    name: "Daniel and Lump",
+    description: "Told the AI to look for Daniel Brottman and Lump",
+  },
 };
 type TimelineIdType = keyof typeof TIMELINES;
 
@@ -432,7 +447,7 @@ function TimelinePicker(props: {
 
   return (
     <div className="flex flex-col items-center mb-4">
-      <div className="flex flex-col sm:flex-row justify-start rounded-md border overflow-hidden">
+      <div className="flex flex-col lg:flex-row justify-start rounded-md border overflow-hidden">
         {Object.keys(TIMELINES).map((id, index) => {
           const isSelected = id === timelineId;
 
