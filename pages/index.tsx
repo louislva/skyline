@@ -7,7 +7,7 @@ import {
 } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 // HELPERS
@@ -96,7 +96,33 @@ async function mergeConversationsContinual(
     callback(newPosts);
   }
 }
+function useLocalStorageState<T>(
+  key: string,
+  defaultValue: T
+): [T, (value: T) => void] {
+  // First checks localStorage
+  // If not found, uses defaultValue
+  // Otherwise, uses the value from localStorage
+  // Every time the state is set, it is also saved to localStorage
 
+  const [state, setState] = useState<T>(() => {
+    const value = localStorage.getItem(key);
+    if (value) {
+      return JSON.parse(value);
+    } else {
+      return defaultValue;
+    }
+  });
+
+  const setStateAndSave = (value: T) => {
+    localStorage.setItem(key, JSON.stringify(value));
+    setState(value);
+  };
+
+  return [state, setStateAndSave];
+}
+
+// Feeds
 function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
   return {
     icon: "toys",
@@ -344,6 +370,13 @@ type TimelineDefinitionType = {
 type TimelinesType = {
   [id: string]: TimelineDefinitionType;
 };
+type CustomAITimelinesType = {
+  [id: string]: {
+    name: string;
+    positivePrompt: string;
+    negativePrompt: string;
+  };
+};
 
 // TIMELINES
 const TIMELINES: {
@@ -378,7 +411,30 @@ function TimelineScreen(props: {
 }) {
   const { identifier, setIdentifier, agent } = props;
   const [timelineId, setTimelineId] = useState<TimelineIdType>("bskyDefault");
-  const [timelines, setTimelines] = useState<TimelinesType>(TIMELINES);
+  const [customAITimelines, setCustomAITimelines] =
+    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  const timelines = useMemo(() => {
+    return {
+      ...TIMELINES,
+      ...Object.fromEntries(
+        Object.entries(customAITimelines).map(([id, config]) => {
+          const { name, positivePrompt, negativePrompt } = config;
+          return [
+            id,
+            {
+              ...makeEmbeddingsFeed(positivePrompt, negativePrompt),
+              name: name,
+              // a material icon that symbolizes "custom"
+              icon: "bolt",
+              description: `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`,
+            },
+          ] as [string, TimelineDefinitionType];
+        })
+      ),
+    };
+  }, [customAITimelines]);
+
+  const [createTimelineModal, setCreateTimelineModalOpen] = useState(false);
 
   return (
     <div className="w-full flex flex-col items-center px-2">
@@ -387,6 +443,7 @@ function TimelineScreen(props: {
         timelineId={timelineId}
         setTimelineId={setTimelineId}
         timelines={timelines}
+        setCreateTimelineModalOpen={setCreateTimelineModalOpen}
       />
       <Timeline
         key={timelineId}
@@ -395,9 +452,17 @@ function TimelineScreen(props: {
         identifier={identifier}
         timelines={timelines}
       />
+      {createTimelineModal && (
+        <CreateTimelineModal
+          customAITimelines={customAITimelines}
+          setCustomAITimelines={setCustomAITimelines}
+          setOpen={setCreateTimelineModalOpen}
+        />
+      )}
     </div>
   );
 }
+
 function Title() {
   return (
     <>
@@ -421,46 +486,62 @@ function Title() {
     </>
   );
 }
+
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
   timelines: typeof TIMELINES;
+  setCreateTimelineModalOpen: (open: boolean) => void;
 }) {
-  const { timelineId, setTimelineId, timelines } = props;
+  const { timelineId, setTimelineId, timelines, setCreateTimelineModalOpen } =
+    props;
   const [hoveredTimelineId, setHoveredTimelineId] =
     useState<TimelineIdType | null>(null);
 
   return (
     <div className="flex flex-col items-center mb-4">
-      <div className="flex flex-col lg:flex-row justify-start rounded-md border overflow-hidden">
-        {Object.keys(timelines).map((id, index) => {
-          const isSelected = id === timelineId;
+      <div className="flex flex-col lg:flex-row items-center">
+        <div className="flex flex-col lg:flex-row justify-start rounded-md border overflow-hidden">
+          {Object.keys(timelines).map((id, index) => {
+            const isSelected = id === timelineId;
 
-          return (
-            <button
-              key={id}
-              className={`p-2 flex flex-row items-center ${
-                id === timelineId ? "bg-blue-500 text-white" : ""
-              } ${index !== 0 ? "sm:border-l " : ""}`}
-              onClick={() => {
-                setTimelineId(id as TimelineIdType);
-                setHoveredTimelineId(null);
-              }}
-              onMouseEnter={() => {
-                setHoveredTimelineId(id as TimelineIdType);
-              }}
-              onMouseMove={() => {
-                setHoveredTimelineId(id as TimelineIdType);
-              }}
-              onMouseLeave={() => {
-                setHoveredTimelineId(null);
-              }}
-            >
-              <span className="material-icons mr-2">{timelines[id].icon}</span>
-              <span>{timelines[id].name}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={id}
+                className={`p-2 h-10 flex flex-row items-center ${
+                  id === timelineId ? "bg-blue-500 text-white" : ""
+                } ${index !== 0 ? "sm:border-l " : ""}`}
+                onClick={() => {
+                  setTimelineId(id as TimelineIdType);
+                  setHoveredTimelineId(null);
+                }}
+                onMouseEnter={() => {
+                  setHoveredTimelineId(id as TimelineIdType);
+                }}
+                onMouseMove={() => {
+                  setHoveredTimelineId(id as TimelineIdType);
+                }}
+                onMouseLeave={() => {
+                  setHoveredTimelineId(null);
+                }}
+              >
+                <span className="material-icons mr-2">
+                  {timelines[id].icon}
+                </span>
+                <span>{timelines[id].name}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className="p-2 flex flex-row items-center justify-center border rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0"
+          onClick={() => {
+            setCreateTimelineModalOpen(true);
+          }}
+        >
+          <span className="material-icons mr">add</span>
+          <span className="inline lg:hidden pl-1">Create custom Skyline</span>
+        </button>
       </div>
 
       {hoveredTimelineId && (
@@ -472,6 +553,7 @@ function TimelinePicker(props: {
     </div>
   );
 }
+
 function Timeline(props: {
   agent: BskyAgent;
   identifier: string;
@@ -684,6 +766,73 @@ function Post(props: {
         </div>
       </Link>
     </>
+  );
+}
+
+function CreateTimelineModal(props: {
+  customAITimelines: CustomAITimelinesType;
+  setCustomAITimelines: (timelines: CustomAITimelinesType) => void;
+  setOpen: (open: boolean) => void;
+}) {
+  const { customAITimelines, setCustomAITimelines, setOpen } = props;
+  const [name, setName] = useState("");
+  const [positivePrompt, setPositivePrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
+
+  return (
+    <div
+      className="fixed top-0 left-0 w-screen h-screen bg-black/50 backdrop-blur-md	flex justify-center items-center"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        className="bg-white rounded-lg p-4 w-128"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-xl font-bold mb-4">Create a timeline</div>
+        <div className="flex flex-col gap-2">
+          <label>Title</label>
+          <input
+            type="text"
+            placeholder="Wholesome TL"
+            className="border border-gray-300 rounded-md p-2 w-1/2"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <label>I want to see more of...</label>
+          <input
+            type="text"
+            placeholder="Wholesome tweets, kindness, love, fun banter"
+            className="border border-gray-300 rounded-md p-2"
+            value={positivePrompt}
+            onChange={(e) => setPositivePrompt(e.target.value)}
+          />
+          <label>I want to see less of...</label>
+          <input
+            type="text"
+            placeholder="Angry tweets, with politics, people talking about gender & dating, etc."
+            className="border border-gray-300 rounded-md p-2"
+            value={negativePrompt}
+            onChange={(e) => setNegativePrompt(e.target.value)}
+          />
+          <button
+            className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto"
+            onClick={() => {
+              setCustomAITimelines({
+                ...customAITimelines,
+                [Date.now().toString()]: {
+                  name: name.trim(),
+                  positivePrompt: positivePrompt.trim(),
+                  negativePrompt: negativePrompt.trim(),
+                },
+              });
+              setOpen(false);
+            }}
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
