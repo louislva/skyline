@@ -36,53 +36,59 @@ async function getFollows(
   }
   return follows;
 }
-async function mergeConversations_OLD(
+async function mergeConversationsContinual(
   agent: BskyAgent,
-  posts: SkylinePostType[]
-): Promise<SkylinePostType[]> {
-  // First, load all the replies
-  await Promise.all(
-    posts.map(async (post) => {
-      const record = post.postView.record as RecordType;
-      if (record.reply) {
-        // Make sure the parent post is in the list
-        const response = await agent.getPostThread({
-          uri: record.reply.parent.uri,
-        });
+  allPosts_: SkylinePostType[],
+  callback: (posts: SkylinePostType[]) => void
+) {
+  const WINDOW = 10;
 
-        let newPosts = [];
-        if (response.success) {
-          let node: ThreadViewPost | null = response.data.thread.post
-            ? (response.data.thread as ThreadViewPost)
-            : null;
-          while (node) {
-            newPosts.unshift({
-              postView: node.post as SkylinePostType["postView"],
-            });
-            node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
+  const allPosts: SkylinePostType[] = JSON.parse(JSON.stringify(allPosts_));
+  let newPosts = allPosts.slice();
+
+  for (let i = 0; i < allPosts.length; i += WINDOW) {
+    const posts = allPosts.slice(i, i + WINDOW);
+    // First, load all the replies
+    await Promise.all(
+      posts.map(async (post) => {
+        const record = post.postView.record as RecordType;
+        if (record.reply) {
+          // Make sure the parent post is in the list
+          const response = await agent.getPostThread({
+            uri: record.reply.parent.uri,
+          });
+
+          let newPosts = [];
+          if (response.success) {
+            let node: ThreadViewPost | null = response.data.thread.post
+              ? (response.data.thread as ThreadViewPost)
+              : null;
+            while (node) {
+              newPosts.unshift({
+                postView: node.post as SkylinePostType["postView"],
+              });
+              node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
+            }
           }
+
+          post.replyingTo = newPosts;
         }
 
-        post.replyingTo = newPosts;
-      }
+        return;
+      })
+    );
 
-      return;
-    })
-  );
-
-  // Then, remove all replyingTo posts from the root
-  let newPosts = posts.slice();
-  posts.forEach((post) => {
-    post.replyingTo?.forEach((replyingToPost) => {
-      newPosts = newPosts.filter(
-        (p) => p.postView.cid !== replyingToPost.postView.cid
-      );
+    // Then, remove all replyingTo posts from the root
+    posts.forEach((post) => {
+      post.replyingTo?.forEach((replyingToPost) => {
+        newPosts = newPosts.filter(
+          (p) => p.postView.cid !== replyingToPost.postView.cid
+        );
+      });
     });
-  });
-
-  return newPosts;
+    callback(newPosts);
+  }
 }
-const mergeConversations = mergeConversations_OLD;
 
 function getJustPersonFeed(handle: string): TimelineDefinitionType {
   return {
@@ -124,25 +130,25 @@ function getJustPersonFeed(handle: string): TimelineDefinitionType {
 }
 
 type RecordType = {
-      text: string;
-      createdAt: string;
-      reply?: {
-        parent: {
-          cid: string;
-          uri: string;
-        };
-        root: {
-          cid: string;
-          uri: string;
-        };
-      };
-      embed?: {
-        $type: "app.bsky.embed.images" | string;
-        images?: {
-          alt: string;
-          image: BlobRef;
-        }[];
-      };
+  text: string;
+  createdAt: string;
+  reply?: {
+    parent: {
+      cid: string;
+      uri: string;
+    };
+    root: {
+      cid: string;
+      uri: string;
+    };
+  };
+  embed?: {
+    $type: "app.bsky.embed.images" | string;
+    images?: {
+      alt: string;
+      image: BlobRef;
+    }[];
+  };
 };
 
 type SkylinePostType = {
@@ -171,8 +177,8 @@ const TIMELINES: {
   [id: string]: TimelineDefinitionType;
 } = {
   bskyDefault: {
-    icon: "home",
-    name: "Default",
+    icon: "person_add",
+    name: "Following",
     produceFeed: async ({ agent, cursor }) => {
       const response = await agent.getTimeline({
         cursor,
@@ -275,10 +281,11 @@ function TimelineScreen(props: {
       .then(async (result) => {
         console.timeEnd("produceFeed");
         const postsSliced = result.posts.slice(0, 50);
-        console.time("mergeConversations");
-        const postsMerged = await mergeConversations(agent, postsSliced);
-        console.timeEnd("mergeConversations");
-        setPosts(postsMerged);
+        console.time("mergeConversationsFirst10");
+        mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
+          console.timeEnd("mergeConversationsFirst10");
+          setPosts(postsMerged);
+        });
         setLoading(false);
       })
       .catch((err) => {
@@ -389,7 +396,7 @@ function Post(props: {
         />
       ))}
       {replyPosts.length > 2 && (
-        <div className="mt-4 mb-1 px-4 flex flex-row items-center text-sm mb-4 text-gray-700">
+        <div className="mt-4 mb-0 px-4 flex flex-row items-center text-sm mb-4 text-gray-700">
           <div className="text-xl mr-1 -mt-2">...</div>
           {replyPosts.length - 2} more replies{" "}
           <div className="text-xl ml-1 -mt-2">...</div>
