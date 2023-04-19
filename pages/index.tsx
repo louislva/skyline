@@ -282,7 +282,7 @@ function makeEmbeddingsFeed(
 
         return {
           posts: postsWithSimilarity
-            .filter((item) => item.score > 0)
+            // .filter((item) => item.score > 0)
             .sort((a, b) => b.score - a.score),
           cursor: response.data.cursor,
         };
@@ -355,7 +355,7 @@ const TIMELINES: {
       "Angry tweets, with politics, people talking about gender & dating, etc."
     ),
     icon: "favorite",
-    name: "Wholesome feed",
+    name: "Wholesome",
     description:
       "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
   },
@@ -410,6 +410,20 @@ function TimelineScreen(props: {
 
   return (
     <div className="w-full flex flex-col items-center px-2">
+      <Title />
+      <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
+      <Timeline
+        key={timelineId}
+        agent={agent}
+        posts={posts}
+        loading={loading}
+      />
+    </div>
+  );
+}
+function Title() {
+  return (
+    <>
       <div className="text-xl font-light mt-4">
         {/* spells skyline.gay in pride flag colors */}
         <span className="text-red-500">s</span>
@@ -427,14 +441,7 @@ function TimelineScreen(props: {
         {/* gay can also mean happy */}
         {/* the world deserves better algorithms */}
       </div>
-      <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
-      <Timeline
-        key={timelineId}
-        agent={agent}
-        posts={posts}
-        loading={loading}
-      />
-    </div>
+    </>
   );
 }
 function TimelinePicker(props: {
@@ -566,7 +573,9 @@ function Post(props: {
           .slice(-1)
           .map((reply) => (
             <Post
-              key={reply.postView.cid}
+              key={
+                reply.postView.cid + "as a later child to" + post.postView.cid
+              }
               agent={agent}
               post={reply}
               hasChildren
@@ -627,7 +636,8 @@ function Post(props: {
               {embed.images.slice(0, 3).map((image) => (
                 <div className="flex-1 rounded-md overflow-hidden">
                   <img
-                    src={image.fullsize}
+                    key={image.thumb}
+                    src={image.thumb}
                     alt={image.alt}
                     className="h-full w-full object-cover"
                   />
@@ -650,9 +660,10 @@ function Post(props: {
                   settings
                 </div>
                 <div className="text-gray-400">
-                  {Math.min(
-                    100,
-                    Math.max(-100, Math.pow(post.score, 0.3) * 100)
+                  {(
+                    Math.pow(Math.abs(post.score), 0.3) *
+                    Math.sign(post.score) *
+                    100
                   ).toFixed(0)}
                   % match
                 </div>
