@@ -97,7 +97,7 @@ async function mergeConversationsContinual(
   }
 }
 
-function getJustPersonFeed(handle: string): TimelineDefinitionType {
+function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
   return {
     icon: "toys",
     name: "Just @" + handle,
@@ -136,56 +136,8 @@ function getJustPersonFeed(handle: string): TimelineDefinitionType {
     },
   };
 }
-
-type RecordType = {
-  text: string;
-  createdAt: string;
-  reply?: {
-    parent: {
-      cid: string;
-      uri: string;
-    };
-    root: {
-      cid: string;
-      uri: string;
-    };
-  };
-  embed?: {
-    $type: "app.bsky.embed.images" | string;
-    images?: {
-      alt: string;
-      image: BlobRef;
-    }[];
-  };
-};
-
-type SkylinePostType = {
-  postView: PostView & {
-    record: RecordType;
-  };
-  replyingTo?: SkylinePostType[];
-  notRoot?: true;
-  repostBy?: ProfileView;
-};
-type TimelineDefinitionType = {
-  icon: string;
-  name: string;
-  description: string;
-  produceFeed: (params: {
-    agent: BskyAgent;
-    egoIdentifier: string;
-    cursor: string | undefined;
-  }) => Promise<{
-    posts: SkylinePostType[];
-    cursor: string | undefined;
-  }>;
-};
-
-// TIMELINES
-const TIMELINES: {
-  [id: string]: TimelineDefinitionType;
-} = {
-  bskyDefault: {
+function makeFollowingFeed(): TimelineDefinitionType {
+  return {
     icon: "person_add",
     name: "Following",
     description: "Posts from people you follow, in reverse chronological order",
@@ -208,8 +160,10 @@ const TIMELINES: {
         throw new Error("Failed to get timeline");
       }
     },
-  },
-  oneFromEach: {
+  };
+}
+function makeOneFromEachFeed(): TimelineDefinitionType {
+  return {
     icon: "people",
     name: "One from each",
     description:
@@ -262,8 +216,13 @@ const TIMELINES: {
           .map((post) => ({ postView: post } as SkylinePostType)),
       };
     },
-  },
-  algo: {
+  };
+}
+function makeEmbeddingsFeed(
+  positivePrompt: string,
+  negativePrompt: string
+): TimelineDefinitionType {
+  return {
     icon: "trending_up",
     name: "Algo",
     description: "AI, bitch!",
@@ -281,7 +240,6 @@ const TIMELINES: {
               : undefined,
         }));
 
-        const sortingPrompt = "Really famous tweet, lots of attention";
         const embeddingsResponse = await fetch("/api/embeddings", {
           method: "POST",
           headers: {
@@ -290,11 +248,11 @@ const TIMELINES: {
           body: JSON.stringify({
             text: posts
               .map((post) => {
-                const text = `${post.postView.author.displayName} (@${post.postView.author.handle}) says:\n\n${post.postView.record.text}\n\n[${post.postView.likeCount} likes, ${post.postView.replyCount} replies, ${post.postView.repostCount} reposts]`;
+                const text = `${post.postView.author.displayName} (@${post.postView.author.handle}) says:\n\n${post.postView.record.text}`;
                 console.log(text);
                 return text;
               })
-              .concat(sortingPrompt),
+              .concat([positivePrompt, negativePrompt]),
           }),
         });
         if (!embeddingsResponse.ok) throw new Error("Failed to do AI!!");
@@ -304,29 +262,94 @@ const TIMELINES: {
         posts.forEach((post, index) => {
           embeddingByCid[post.postView.cid] = embeddings[index];
         });
-        const sortingPromptEmbedding = embeddings[embeddings.length - 1];
+        const positivePromptEmbedding = embeddings[embeddings.length - 2];
+        const negativePromptEmbedding = embeddings[embeddings.length - 1];
 
         const postsWithSimilarity = posts.map((post) => ({
           ...post,
-          similarity: cosineSimilarity(
-            embeddingByCid[post.postView.cid],
-            sortingPromptEmbedding
-          ),
+          score:
+            cosineSimilarity(
+              embeddingByCid[post.postView.cid],
+              positivePromptEmbedding
+            ) -
+            cosineSimilarity(
+              embeddingByCid[post.postView.cid],
+              negativePromptEmbedding
+            ),
         }));
 
         console.log(postsWithSimilarity);
 
         return {
-          posts: postsWithSimilarity.sort(
-            (a, b) => b.similarity - a.similarity
-          ),
+          posts: postsWithSimilarity
+            .filter((item) => item.score > 0)
+            .sort((a, b) => b.score - a.score),
           cursor: response.data.cursor,
         };
       } else {
         throw new Error("Failed to get timeline");
       }
     },
-  },
+  };
+}
+
+type RecordType = {
+  text: string;
+  createdAt: string;
+  reply?: {
+    parent: {
+      cid: string;
+      uri: string;
+    };
+    root: {
+      cid: string;
+      uri: string;
+    };
+  };
+  embed?: {
+    $type: "app.bsky.embed.images" | string;
+    images?: {
+      alt: string;
+      image: BlobRef;
+    }[];
+  };
+};
+
+type SkylinePostType = {
+  // Post itself
+  postView: PostView & {
+    record: RecordType;
+  };
+
+  // Things to-do with post type
+  replyingTo?: SkylinePostType[];
+  repostBy?: ProfileView;
+
+  // Algorithm / Skyline-native stuff
+  score?: number;
+  notRoot?: true;
+};
+type TimelineDefinitionType = {
+  icon: string;
+  name: string;
+  description: string;
+  produceFeed: (params: {
+    agent: BskyAgent;
+    egoIdentifier: string;
+    cursor: string | undefined;
+  }) => Promise<{
+    posts: SkylinePostType[];
+    cursor: string | undefined;
+  }>;
+};
+
+// TIMELINES
+const TIMELINES: {
+  [id: string]: TimelineDefinitionType;
+} = {
+  bskyDefault: makeFollowingFeed(),
+  oneFromEach: makeOneFromEachFeed(),
+  algo: makeEmbeddingsFeed("Daniel Brottman", "Lump"),
 };
 type TimelineIdType = keyof typeof TIMELINES;
 
@@ -356,7 +379,7 @@ function TimelineScreen(props: {
       })
       .then(async (result) => {
         console.timeEnd("produceFeed");
-        const postsSliced = result.posts.slice(0, 50);
+        const postsSliced = result.posts;
         console.time("mergeConversationsFirst10");
         mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
           console.timeEnd("mergeConversationsFirst10");
@@ -385,6 +408,9 @@ function TimelineScreen(props: {
       </div>
       <div className="text-sm font-light text-black/70 mb-4">
         it's a memorable domain! (and it was $5 off)
+        {/* skyline is the timeline on bluesky */}
+        {/* gay can also mean happy */}
+        {/* the world deserves better algorithms */}
       </div>
       <TimelinePicker timelineId={timelineId} setTimelineId={setTimelineId} />
       <Timeline
@@ -454,7 +480,7 @@ function Timeline(props: {
   const { posts, agent, loading } = props;
 
   return (
-    <div className="border-2 w-full sm:w-136 border-gray-300 rounded-xl">
+    <div className="border-2 w-full sm:w-136 border-gray-300 rounded-xl mb-8 overflow-hidden">
       {loading ? (
         <div className="flex flex-row justify-center items-center text-3xl py-32">
           <LoadingSpinner
@@ -469,6 +495,7 @@ function Timeline(props: {
             agent={agent}
             key={post.postView.cid + "index" + index}
             post={post}
+            isLastPost={index === posts.length - 1}
           />
         ))
       )}
@@ -478,10 +505,10 @@ function Timeline(props: {
 function Post(props: {
   agent: BskyAgent;
   post: SkylinePostType;
-  disableParentLoading?: boolean;
   hasChildren?: boolean;
+  isLastPost?: boolean;
 }) {
-  const { agent, post, disableParentLoading, hasChildren } = props;
+  const { agent, post, hasChildren, isLastPost } = props;
   const author = post.postView.author;
   const embed:
     | {
@@ -509,7 +536,6 @@ function Post(props: {
           key={reply.postView.cid + "as child to" + post.postView.cid}
           agent={agent}
           post={reply}
-          disableParentLoading
           hasChildren
         />
       ))}
@@ -528,7 +554,6 @@ function Post(props: {
               key={reply.postView.cid}
               agent={agent}
               post={reply}
-              disableParentLoading
               hasChildren
             />
           ))}
@@ -536,7 +561,9 @@ function Post(props: {
         <div
           className={
             "p-4 overflow-hidden " +
-            (hasChildren ? "border-none " : "border-b border-gray-300 ")
+            (hasChildren || isLastPost
+              ? "border-none "
+              : "border-b border-gray-300 ")
           }
         >
           {/* Reply row */}
@@ -596,11 +623,26 @@ function Post(props: {
           {/* Likes, RTs, etc. row */}
           <div className="flex flex-row items-center text-base mt-3 text-gray-700 leading-none">
             <div className="material-icons mr-1">chat_bubble_outline</div>
-            <div>{post.postView.replyCount}</div>
-            <div className="material-icons mr-1 ml-4">repeat</div>
-            <div>{post.postView.repostCount}</div>
-            <div className="material-icons mr-1 ml-4">favorite_border</div>
-            <div>{post.postView.likeCount}</div>
+            <div className="mr-4">{post.postView.replyCount}</div>
+            <div className="material-icons mr-1">repeat</div>
+            <div className="mr-4">{post.postView.repostCount}</div>
+            <div className="material-icons mr-1">favorite_border</div>
+            <div className="mr-4">{post.postView.likeCount}</div>
+            {post.score && (
+              <>
+                {/* cog icon / settings icon bec it's a machine */}
+                <div className="material-icons ml-auto mr-1 text-gray-400">
+                  settings
+                </div>
+                <div className="text-gray-400">
+                  {Math.min(
+                    100,
+                    Math.max(-100, Math.pow(post.score, 0.3) * 100)
+                  ).toFixed(0)}
+                  % match
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Link>
