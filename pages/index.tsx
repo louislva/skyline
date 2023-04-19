@@ -36,7 +36,7 @@ async function getFollows(
   }
   return follows;
 }
-async function mergeConversations(
+async function mergeConversations_OLD(
   agent: BskyAgent,
   posts: SkylinePostType[]
 ): Promise<SkylinePostType[]> {
@@ -56,7 +56,9 @@ async function mergeConversations(
             ? (response.data.thread as ThreadViewPost)
             : null;
           while (node) {
-            newPosts.unshift({ postView: node.post as PostView });
+            newPosts.unshift({
+              postView: node.post as SkylinePostType["postView"],
+            });
             node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
           }
         }
@@ -80,6 +82,7 @@ async function mergeConversations(
 
   return newPosts;
 }
+const mergeConversations = mergeConversations_OLD;
 
 function getJustPersonFeed(handle: string): TimelineDefinitionType {
   return {
@@ -100,9 +103,17 @@ function getJustPersonFeed(handle: string): TimelineDefinitionType {
                 return false;
               }
             })
-            .map((item) => ({
-              postView: item.post,
-            })),
+            .map((item) => {
+              const repostBy: ProfileView | undefined =
+                item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
+                  ? (item.reason.by as ProfileView)
+                  : undefined;
+
+              return {
+                postView: item.post as SkylinePostType["postView"],
+                repostBy,
+              };
+            }),
           cursor: response.data.cursor,
         };
       } else {
@@ -112,8 +123,7 @@ function getJustPersonFeed(handle: string): TimelineDefinitionType {
   };
 }
 
-type RecordType =
-  | {
+type RecordType = {
       text: string;
       createdAt: string;
       reply?: {
@@ -133,14 +143,15 @@ type RecordType =
           image: BlobRef;
         }[];
       };
-    }
-  | any;
+};
+
 type SkylinePostType = {
   postView: PostView & {
     record: RecordType;
   };
   replyingTo?: SkylinePostType[];
   notRoot?: true;
+  repostBy?: ProfileView;
 };
 type TimelineDefinitionType = {
   icon: string;
@@ -168,19 +179,19 @@ const TIMELINES: {
       });
       if (response.success) {
         return {
-          posts: response.data.feed.map((item) => ({ postView: item.post })),
+          posts: response.data.feed.map((item) => ({
+            postView: item.post as SkylinePostType["postView"],
+            repostBy:
+              item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
+                ? (item.reason.by as ProfileView)
+                : undefined,
+          })),
           cursor: response.data.cursor,
         };
       } else {
         throw new Error("Failed to get timeline");
       }
     },
-  },
-  justJay: getJustPersonFeed("jay.bsky.team"),
-  justLouis: {
-    ...getJustPersonFeed("louis02x.bsky.social"),
-    icon: "star",
-    name: "Best Posts on Bluesky",
   },
   oneFromEach: {
     icon: "people",
