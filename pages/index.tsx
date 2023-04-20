@@ -76,7 +76,7 @@ async function mergeConversationsContinual(
               }
             }
           } catch (error) {
-            console.log("Error loading parent post");
+            console.error("Error loading parent post");
           }
 
           post.replyingTo = newPosts;
@@ -138,11 +138,7 @@ function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
         return {
           posts: response.data.feed
             .filter((item) => {
-              if (item.post) return true;
-              else {
-                console.log("NO POST", item);
-                return false;
-              }
+              return !!item.post;
             })
             .map((item) => {
               const repostBy: ProfileView | undefined =
@@ -296,7 +292,6 @@ function makeEmbeddingsFeed(
                         .join("")
                     : ""
                 }`;
-                console.log(text);
                 return text;
               })
               .concat([positivePrompt || "says", negativePrompt || "says"]),
@@ -324,8 +319,6 @@ function makeEmbeddingsFeed(
               negativePromptEmbedding
             ),
         }));
-
-        console.log(postsWithSimilarity);
 
         return {
           posts: postsWithSimilarity
@@ -426,9 +419,11 @@ function TimelineScreen(props: {
   agent: BskyAgent;
 }) {
   const { identifier, setIdentifier, agent } = props;
-  const [timelineId, setTimelineId] = useState<TimelineIdType>("bskyDefault");
+  const [timelineId, setTimelineId] = useState<TimelineIdType>("following");
   const [customAITimelines, setCustomAITimelines] =
     useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  console.log({ customAITimelines });
+
   const timelines = useMemo(() => {
     return {
       ...TIMELINES,
