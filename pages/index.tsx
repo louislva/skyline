@@ -239,7 +239,7 @@ function makeFollowingFeed(): TimelineDefinitionType {
 }
 function makeOneFromEachFeed(): TimelineDefinitionType {
   return {
-    icon: "people",
+    icon: "casino",
     name: "One from each",
     description:
       "Latest post from each person you follow, randomly ordered. Useful for keeping up with everyone.",
@@ -641,7 +641,7 @@ function TimelinePicker(props: {
           }}
         >
           <span className="material-icons mr">add</span>
-          <span className="inline lg:hidden pl-1">Create custom Skyline</span>
+          <span className="inline lg:hidden pl-1">Custom Timeline</span>
         </button>
       </div>
 
