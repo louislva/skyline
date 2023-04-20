@@ -275,9 +275,13 @@ function makeEmbeddingsFeed(
             text: posts
               .map((post) => {
                 const embed = post.postView.embed;
+                // @ts-ignore
                 const quote = embed?.record?.value?.text
-                  ? `${embed?.record?.author?.displayName} (@${
+                  ? // @ts-ignore
+                    `${embed?.record?.author?.displayName} (@${
+                      // @ts-ignore
                       embed?.record?.author?.handle
+                      // @ts-ignore
                     }) says:\n\n${embed?.record?.value?.text?.trim()}`
                   : "";
                 const text = `${post.postView.author.displayName} (@${
