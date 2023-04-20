@@ -926,7 +926,10 @@ function CreateTimelineModal(props: {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <label>I want to see more of...</label>
+          <label className="flex flex-row items-center">
+            I want to see more of...
+            <span className="material-icons text-green-600 ml-1">thumb_up</span>
+          </label>
           <input
             type="text"
             placeholder="Wholesome tweets, kindness, love, fun banter"
@@ -934,7 +937,10 @@ function CreateTimelineModal(props: {
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
           />
-          <label>I want to see less of...</label>
+          <label className="flex flex-row items-center">
+            I want to see less of...
+            <span className="material-icons text-red-600 ml-1">thumb_down</span>
+          </label>
           <input
             type="text"
             placeholder="Angry tweets, with politics, people talking about gender & dating, etc."
