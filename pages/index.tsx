@@ -43,13 +43,15 @@ async function mergeConversationsContinual(
   allPosts_: SkylinePostType[],
   callback: (posts: SkylinePostType[]) => void
 ) {
-  const WINDOW = 10;
+  let window = 5;
 
   const allPosts: SkylinePostType[] = JSON.parse(JSON.stringify(allPosts_));
   let newPosts = allPosts.slice();
 
-  for (let i = 0; i < allPosts.length; i += WINDOW) {
-    const posts = allPosts.slice(i, i + WINDOW);
+  for (let i = 0; i < allPosts.length; i += window) {
+    window *= 2;
+    const posts = allPosts.slice(i, i + window);
+
     // First, load all the replies
     await Promise.all(
       posts.map(async (post) => {
@@ -422,7 +424,6 @@ function TimelineScreen(props: {
   const [timelineId, setTimelineId] = useState<TimelineIdType>("following");
   const [customAITimelines, setCustomAITimelines] =
     useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
-  console.log({ customAITimelines });
 
   const timelines = useMemo(() => {
     return {
@@ -582,7 +583,6 @@ function Timeline(props: {
     setPosts([]);
     setLoading(true);
 
-    console.time("produceFeed");
     timelines[timelineId]
       .produceFeed({
         agent,
@@ -590,11 +590,8 @@ function Timeline(props: {
         cursor,
       })
       .then(async (result) => {
-        console.timeEnd("produceFeed");
         const postsSliced = result.posts;
-        console.time("mergeConversationsFirst10");
         mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
-          console.timeEnd("mergeConversationsFirst10");
           setPosts(postsMerged);
         });
         setLoading(false);
