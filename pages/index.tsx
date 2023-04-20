@@ -526,6 +526,16 @@ function TimelineScreen(props: {
 }
 
 function Header() {
+  const subheaders = [
+    "it's a memorable domain! (and it was $5 off)",
+    "better algorithms make better people",
+    "the skyline is the timeline on bluesky",
+  ];
+  const [subheader, setSubheader] = useState<string>("");
+  useEffect(() => {
+    setSubheader(subheaders[Math.floor(Math.random() * subheaders.length)]);
+  }, []);
+
   return (
     <>
       <div className="text-xl font-light mt-4">
@@ -537,14 +547,8 @@ function Header() {
         <span className="text-blue-500">i</span>
         <span className="text-purple-500">n</span>
         <span className="text-pink-500">e</span>
-        <span className="text-gray-600">.gay</span>
       </div>
-      <div className="text-sm font-light text-black/70 mb-4">
-        it's a memorable domain! (and it was $5 off)
-        {/* skyline is the timeline on bluesky */}
-        {/* gay can also mean happy */}
-        {/* the world deserves better algorithms */}
-      </div>
+      <div className="text-sm font-light text-black/70 mb-4">{subheader}</div>
     </>
   );
 }
@@ -1041,7 +1045,8 @@ export default function Main() {
   return (
     <>
       <Head>
-        <title>Skyline ✨🟦</title>
+        <title>Skyline</title>
+        <link rel="icon" href="/skyline-16.png" />
       </Head>
       {identifier ? (
         <TimelineScreen
