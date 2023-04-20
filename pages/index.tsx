@@ -293,6 +293,40 @@ function makeOneFromEachFeed(): TimelineDefinitionType {
     },
   };
 }
+function makeMutualsFeed(): TimelineDefinitionType {
+  return {
+    icon: "people",
+    name: "Mutuals",
+    description: "Posts from your friends",
+    produceFeed: async ({ agent, egoIdentifier, cursor }) => {
+      const mutualsPromise = getMutuals(agent, egoIdentifier);
+      const response = await agent.getTimeline({
+        cursor,
+      });
+      const mutuals = await mutualsPromise;
+      const isMutualByDid = Object.fromEntries(
+        mutuals.map((m) => [m.did, true])
+      );
+
+      if (response.success) {
+        return {
+          posts: response.data.feed
+            .map((item) => ({
+              postView: item.post as ExpandedPostView,
+              repostBy:
+                item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
+                  ? (item.reason.by as ProfileView)
+                  : undefined,
+            }))
+            .filter((item) => isMutualByDid[item.postView.author.did]),
+          cursor: response.data.cursor,
+        };
+      } else {
+        throw new Error("Failed to get timeline");
+      }
+    },
+  };
+}
 function makeEmbeddingsFeed(
   positivePrompt: string | null,
   negativePrompt: string | null
@@ -451,6 +485,7 @@ const TIMELINES: {
 } = {
   following: makeFollowingFeed(),
   "one-from-each": makeOneFromEachFeed(),
+  mutuals: makeMutualsFeed(),
   wholesome: {
     ...makeEmbeddingsFeed(
       "Wholesome tweet, kindness, love, fun banter",
