@@ -6,6 +6,7 @@ import {
   ThreadViewPost,
 } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
+import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 const cosineSimilarity = require("compute-cosine-similarity");
@@ -453,7 +454,7 @@ function TimelineScreen(props: {
 
   return (
     <div className="w-full flex flex-col items-center px-2">
-      <Title />
+      <Header />
       <TimelinePicker
         timelineId={timelineId}
         setTimelineId={setTimelineId}
@@ -478,7 +479,7 @@ function TimelineScreen(props: {
   );
 }
 
-function Title() {
+function Header() {
   return (
     <>
       <div className="text-xl font-light mt-4">
@@ -917,7 +918,7 @@ function LoginScreen(props: {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
-      <Title />
+      <Header />
       {/* An offset equal to the security info (ish) */}
       <div className="h-32" />
       {/* The title */}
@@ -995,13 +996,20 @@ export default function Main() {
     })
   ).current;
 
-  return identifier ? (
-    <TimelineScreen
-      identifier={identifier}
-      setIdentifier={setIdentifier}
-      agent={agent}
-    />
-  ) : (
-    <LoginScreen setIdentifier={setIdentifier} agent={agent} />
+  return (
+    <>
+      <Head>
+        <title>Skyline ✨🟦</title>
+      </Head>
+      {identifier ? (
+        <TimelineScreen
+          identifier={identifier}
+          setIdentifier={setIdentifier}
+          agent={agent}
+        />
+      ) : (
+        <LoginScreen setIdentifier={setIdentifier} agent={agent} />
+      )}
+    </>
   );
 }
