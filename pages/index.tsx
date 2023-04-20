@@ -67,7 +67,7 @@ async function mergeConversationsContinual(
                 : null;
               while (node) {
                 newPosts.unshift({
-                  postView: node.post as SkylinePostType["postView"],
+                  postView: node.post as ExpandedPostView,
                 });
                 node = node.parent?.post
                   ? (node.parent as ThreadViewPost)
@@ -150,7 +150,7 @@ function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
                   : undefined;
 
               return {
-                postView: item.post as SkylinePostType["postView"],
+                postView: item.post as ExpandedPostView,
                 repostBy,
               };
             }),
@@ -174,7 +174,7 @@ function makeFollowingFeed(): TimelineDefinitionType {
       if (response.success) {
         return {
           posts: response.data.feed.map((item) => ({
-            postView: item.post as SkylinePostType["postView"],
+            postView: item.post as ExpandedPostView,
             repostBy:
               item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
                 ? (item.reason.by as ProfileView)
@@ -259,7 +259,7 @@ function makeEmbeddingsFeed(
       });
       if (response.success) {
         const posts = response.data.feed.map((item) => ({
-          postView: item.post as SkylinePostType["postView"],
+          postView: item.post as ExpandedPostView,
           repostBy:
             item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
               ? (item.reason.by as ProfileView)
@@ -274,7 +274,23 @@ function makeEmbeddingsFeed(
           body: JSON.stringify({
             text: posts
               .map((post) => {
-                const text = `${post.postView.author.displayName} (@${post.postView.author.handle}) says:\n\n${post.postView.record.text}`;
+                const embed = post.postView.embed;
+                const quote = embed?.record?.value?.text
+                  ? `${embed?.record?.author?.displayName} (@${
+                      embed?.record?.author?.handle
+                    }) says:\n\n${embed?.record?.value?.text?.trim()}`
+                  : "";
+                const text = `${post.postView.author.displayName} (@${
+                  post.postView.author.handle
+                }) says:\n\n${post.postView.record.text.trim()}${
+                  quote
+                    ? "\n" +
+                      quote
+                        .split("\n")
+                        .map((line) => `\n> ${line}`)
+                        .join("")
+                    : ""
+                }`;
                 console.log(text);
                 return text;
               })
@@ -340,11 +356,12 @@ type RecordType = {
     }[];
   };
 };
+type ExpandedPostView = PostView & {
+  record: RecordType;
+};
 type SkylinePostType = {
   // Post itself
-  postView: PostView & {
-    record: RecordType;
-  };
+  postView: ExpandedPostView;
 
   // Things to-do with post type
   replyingTo?: SkylinePostType[];
@@ -393,12 +410,6 @@ const TIMELINES: {
     name: "Wholesome",
     description:
       "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
-  },
-  danielAndLump: {
-    ...makeEmbeddingsFeed("Daniel Brottman or Lump", null),
-    icon: "face",
-    name: "Daniel and Lump",
-    description: "Told the AI to look for Daniel Brottman and Lump",
   },
 };
 type TimelineIdType = keyof typeof TIMELINES;
@@ -627,6 +638,7 @@ function Post(props: {
   const author = post.postView.author;
   const embed:
     | {
+        $type: "app.bsky.embed.record#view" | "app.bsky.embed.images" | string;
         images?:
           | {
               alt: string;
@@ -634,6 +646,10 @@ function Post(props: {
               thumb: string;
             }[]
           | undefined;
+        record?: {
+          author: PostView["author"];
+          value: RecordType;
+        };
       }
     | undefined = post.postView.embed as any;
   const record: RecordType = post.postView.record as any;
@@ -723,7 +739,7 @@ function Post(props: {
               </>
             ))}
           </div>
-          {/* Embeds row */}
+          {/* Images */}
           {embed?.images && (
             <div className="mt-2 flex flex-row h-72 gap-4">
               {embed.images.slice(0, 3).map((image) => (
@@ -736,6 +752,32 @@ function Post(props: {
                   />
                 </div>
               ))}
+            </div>
+          )}
+          {/* Quote tweets */}
+          {embed?.record?.value?.text && (
+            <div className="mt-2 border rounded-md p-2 py-2 text-sm">
+              <div className="flex flex-row items-center h-4 text-gray-700 bg-green-4000 mb-1">
+                <img
+                  src={embed.record.author.avatar}
+                  className="w-4 h-4 rounded-full mr-1"
+                />
+                <span className="font-semibold mr-1 leading-none">
+                  {embed.record.author.displayName}
+                </span>
+                <span className="text-gray-500 leading-none">
+                  {" "}
+                  @{embed.record.author.handle}
+                </span>
+              </div>
+              <div className="bg-blue-4000">
+                {embed?.record?.value?.text?.split("\n").map((line, index) => (
+                  <>
+                    {index !== 0 && <br />}
+                    {line}
+                  </>
+                ))}
+              </div>
             </div>
           )}
           {/* Likes, RTs, etc. row */}
