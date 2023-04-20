@@ -8,7 +8,7 @@ import {
 import moment from "moment";
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 let followsCache: ProfileView[] | null = null;
@@ -819,19 +819,21 @@ function Post(props: {
           {/* Content row */}
           <div className="mt-2">
             {record.text.split("\n").map((line, index) => (
-              <>
+              <Fragment key={line + "$" + index}>
                 {index !== 0 && <br />}
                 {line}
-              </>
+              </Fragment>
             ))}
           </div>
           {/* Images */}
           {embed?.images && (
             <div className="mt-2 flex flex-row h-72 gap-4">
               {embed.images.slice(0, 3).map((image) => (
-                <div className="flex-1 rounded-md overflow-hidden">
+                <div
+                  className="flex-1 rounded-md overflow-hidden"
+                  key={image.thumb}
+                >
                   <img
-                    key={image.thumb}
                     src={image.thumb}
                     alt={image.alt}
                     className="h-full w-full object-cover"
@@ -858,10 +860,10 @@ function Post(props: {
               </div>
               <div className="bg-blue-4000">
                 {embed?.record?.value?.text?.split("\n").map((line, index) => (
-                  <>
+                  <Fragment key={line + "$" + index}>
                     {index !== 0 && <br />}
                     {line}
-                  </>
+                  </Fragment>
                 ))}
               </div>
             </div>
