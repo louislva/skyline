@@ -943,7 +943,7 @@ function CreateTimelineModal(props: {
           </label>
           <input
             type="text"
-            placeholder="Angry tweets, with politics, people talking about gender & dating, etc."
+            placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
             className="border border-gray-300 rounded-md p-2"
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
