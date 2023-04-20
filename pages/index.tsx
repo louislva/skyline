@@ -403,8 +403,8 @@ type CustomAITimelinesType = {
 const TIMELINES: {
   [id: string]: TimelineDefinitionType;
 } = {
-  bskyDefault: makeFollowingFeed(),
-  oneFromEach: makeOneFromEachFeed(),
+  following: makeFollowingFeed(),
+  "one-from-each": makeOneFromEachFeed(),
   wholesome: {
     ...makeEmbeddingsFeed(
       "Wholesome tweet, kindness, love, fun banter",
