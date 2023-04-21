@@ -130,7 +130,9 @@ function Header() {
         <span className="text-purple-500">n</span>
         <span className="text-pink-500">e</span>
       </div>
-      <div className="text-sm font-light text-black/70 mb-4">{subheader}</div>
+      <div className="text-sm font-light text-slate-900 dark:text-slate-300 mb-4">
+        {subheader}
+      </div>
     </>
   );
 }
@@ -149,16 +151,18 @@ function TimelinePicker(props: {
   return (
     <div className="flex flex-col items-center mb-4">
       <div className="flex flex-col lg:flex-row items-center">
-        <div className="flex flex-col lg:flex-row justify-start rounded-md border overflow-hidden">
+        <div className="flex flex-col lg:flex-row justify-start rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 overflow-hidden">
           {Object.keys(timelines).map((id, index) => {
             const isSelected = id === timelineId;
 
             return (
               <button
                 key={id}
-                className={`p-2 h-10 flex flex-row items-center ${
-                  id === timelineId ? "bg-blue-500 text-white" : ""
-                } ${index !== 0 ? "sm:border-l " : ""}`}
+                className={`p-2 h-10 flex flex-row items-center border-slate-300 dark:border-slate-600 ${
+                  id === timelineId
+                    ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
+                    : ""
+                } ${index !== 0 ? "lg:border-l " : ""}`}
                 onClick={() => {
                   setTimelineId(id as TimelineIdType);
                   setHoveredTimelineId(null);
@@ -182,7 +186,7 @@ function TimelinePicker(props: {
           })}
         </div>
         <button
-          className="p-2 flex flex-row items-center justify-center border rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0"
+          className="p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0"
           onClick={() => {
             setCreateTimelineModalOpen(true);
           }}
@@ -193,7 +197,7 @@ function TimelinePicker(props: {
       </div>
 
       {hoveredTimelineId && (
-        <div className="max-w-xl text-sm text-black/70 mt-2 text-center">
+        <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
           <b>{timelines[hoveredTimelineId].name}:</b>{" "}
           {timelines[hoveredTimelineId].description}
         </div>
@@ -239,14 +243,14 @@ function Timeline(props: {
   }, [timelineId]);
 
   return (
-    <div className="border-2 w-full sm:w-136 border-gray-300 rounded-xl mb-8 overflow-hidden">
+    <div className="border-2 w-full sm:w-136 border-gray-300 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl mb-8 overflow-hidden">
       {loading ? (
         <div className="flex flex-row justify-center items-center text-3xl py-32">
           <LoadingSpinner
             containerClassName="w-12 h-12 mr-4"
-            dotClassName="bg-black/70"
+            dotClassName="bg-slate-800 dark:text-slate-400"
           />
-          <div className="text-black/70">Loading...</div>
+          <div className="text-slate-800 dark:text-slate-400">Loading...</div>
         </div>
       ) : (
         posts.map((post, index) => (
@@ -304,7 +308,7 @@ function Post(props: {
         />
       ))}
       {replyPosts.length > 2 && (
-        <div className="mt-0 mb-0 px-4 flex flex-row items-center text-sm mb-4 text-gray-700">
+        <div className="mt-0 mb-0 px-4 flex flex-row items-center text-sm mb-4 text-slate-700 dark:text-slate-300">
           <div className="text-xl mr-1 -mt-2">...</div>
           {replyPosts.length - 2} more replies{" "}
           <div className="text-xl ml-1 -mt-2">...</div>
@@ -329,12 +333,12 @@ function Post(props: {
             "p-4 overflow-hidden " +
             (hasChildren || isLastPost
               ? "border-none "
-              : "border-b border-gray-300 ")
+              : "border-b border-gray-300 dark:border-slate-700 ")
           }
         >
           {/* Reply row */}
           {record.reply && (
-            <div className="flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-gray-700 border-t border-dashed">
+            <div className="flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 border-t border-dashed border-slate-300 dark:border-slate-600">
               <div className="material-icons mr-1">reply</div>
               <div>In reply to</div>
             </div>
@@ -351,7 +355,7 @@ function Post(props: {
             {/* Name / handle */}
             <div className="flex flex-col">
               <div className="font-semibold">{author.displayName}</div>
-              <div className="text-gray-500">
+              <div className="text-slate-500 dark:text-slate-400">
                 {author.handle ===
                 "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
                   ? "i'm an asshole 💩"
@@ -359,7 +363,7 @@ function Post(props: {
               </div>
             </div>
             {/* timestamp */}
-            <div className="flex-grow text-right text-gray-500">
+            <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
               {moment(post.postView.indexedAt).fromNow()}
             </div>
           </div>
@@ -391,8 +395,8 @@ function Post(props: {
           )}
           {/* Quote tweets */}
           {embed?.record?.value?.text && (
-            <div className="mt-2 border rounded-md p-2 py-2 text-sm">
-              <div className="flex flex-row items-center h-4 text-gray-700 bg-green-4000 mb-1">
+            <div className="mt-2 border border-slate-300 dark:border-slate-600 rounded-md p-2 py-2 text-sm">
+              <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
                 <img
                   src={embed.record.author.avatar}
                   className="w-4 h-4 rounded-full mr-1"
@@ -400,7 +404,7 @@ function Post(props: {
                 <span className="font-semibold mr-1 leading-none">
                   {embed.record.author.displayName}
                 </span>
-                <span className="text-gray-500 leading-none">
+                <span className="text-slate-500 dark:text-slate-400 leading-none">
                   {" "}
                   @{embed.record.author.handle}
                 </span>
@@ -416,7 +420,7 @@ function Post(props: {
             </div>
           )}
           {/* Likes, RTs, etc. row */}
-          <div className="flex flex-row items-center text-base mt-3 text-gray-700 leading-none">
+          <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
             <div className="material-icons mr-1">chat_bubble_outline</div>
             <div className="mr-4">{post.postView.replyCount}</div>
             <div className="material-icons mr-1">repeat</div>
@@ -462,7 +466,7 @@ function CreateTimelineModal(props: {
       onClick={() => setOpen(false)}
     >
       <div
-        className="bg-white rounded-lg p-4 w-128"
+        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-128"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-xl font-bold mb-4">Create a timeline</div>
@@ -471,7 +475,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Wholesome TL"
-            className="border border-gray-300 rounded-md p-2 w-1/2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -482,7 +486,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Wholesome tweets, kindness, love, fun banter"
-            className="border border-gray-300 rounded-md p-2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2"
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
           />
@@ -493,7 +497,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
-            className="border border-gray-300 rounded-md p-2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2"
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
           />
@@ -572,14 +576,14 @@ function LoginScreen(props: {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border border-gray-300 p-2 rounded mb-4"
+          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border border-gray-300 p-2 rounded mb-4"
+          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4"
         />
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
           Login
@@ -593,8 +597,8 @@ function LoginScreen(props: {
 }
 function SecurityInfo() {
   return (
-    <div className="mt-32 max-w-sm bg-white p-4 rounded-xl border rounded-xl mb-8">
-      <div className="flex flex-row pb-2 border-b mb-2">
+    <div className="mt-32 max-w-sm bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-300 dark:border-slate-600 rounded-xl mb-8">
+      <div className="flex flex-row pb-2 border-b border-slate-300 dark:border-slate-600 mb-2">
         <span className="material-icons mr-2 cursor-pointer">info</span>
         <div>Is this secure?</div>
       </div>
@@ -632,21 +636,27 @@ export default function Main() {
     })
   ).current;
 
+  useEffect(() => {
+    // document.body.classList.add("dark");
+  }, []);
+
   return (
     <>
       <Head>
         <title>Skyline</title>
         <link rel="icon" href="/skyline-16.png" />
       </Head>
-      {identifier ? (
-        <TimelineScreen
-          identifier={identifier}
-          setIdentifier={setIdentifier}
-          agent={agent}
-        />
-      ) : (
-        <LoginScreen setIdentifier={setIdentifier} agent={agent} />
-      )}
+      <div className="w-full min-h-screen bg-slate-100 dark:bg-slate-900 dark:text-slate-100">
+        {identifier ? (
+          <TimelineScreen
+            identifier={identifier}
+            setIdentifier={setIdentifier}
+            agent={agent}
+          />
+        ) : (
+          <LoginScreen setIdentifier={setIdentifier} agent={agent} />
+        )}
+      </div>
     </>
   );
 }
