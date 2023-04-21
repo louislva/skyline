@@ -682,8 +682,8 @@ function Timeline(props: {
         const postsSliced = result.posts;
         mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
           setPosts(postsMerged);
+          setLoading(false);
         });
-        setLoading(false);
       })
       .catch((err) => {
         console.error(err);
