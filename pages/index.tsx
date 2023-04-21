@@ -363,6 +363,7 @@ function Post(props: {
       }
     | undefined = post.postView.embed as any;
   const record: RecordType = post.postView.record as any;
+  const repostBy = post.repostBy;
 
   const bskyLink = `https://staging.bsky.app/profile/${author.handle}/post/${
     post.postView.uri.split("/").slice(-1)[0]
@@ -409,11 +410,31 @@ function Post(props: {
               : "border-b border-gray-300 dark:border-slate-700 ")
           }
         >
-          {/* Reply row */}
+          {/* Reply / repost row */}
+          {(record.reply || repostBy) && (
+            <div
+              className={
+                "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
+                (record.reply
+                  ? "border-t border-dashed border-slate-300 dark:border-slate-600 "
+                  : "")
+              }
+            >
           {record.reply && (
-            <div className="flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 border-t border-dashed border-slate-300 dark:border-slate-600">
+                <>
               <div className="material-icons mr-1">reply</div>
-              <div>In reply to</div>
+                  <div>Replied</div>
+                </>
+              )}
+              {record.reply && repostBy && (
+                <div className="ml-2 mr-1 border-l h-3 w-0 border-slate-600 dark:border-slate-400"></div>
+              )}
+              {repostBy && (
+                <>
+                  <div className="material-icons mr-1">repeat</div>
+                  <div>Reposted by {repostBy.displayName}</div>
+                </>
+              )}
             </div>
           )}
 
