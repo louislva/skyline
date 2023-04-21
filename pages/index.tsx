@@ -248,7 +248,7 @@ function Timeline(props: {
         <div className="flex flex-row justify-center items-center text-3xl py-32">
           <LoadingSpinner
             containerClassName="w-12 h-12 mr-4"
-            dotClassName="bg-slate-800 dark:text-slate-400"
+            dotClassName="bg-slate-800 dark:bg-slate-400"
           />
           <div className="text-slate-800 dark:text-slate-400">Loading...</div>
         </div>
@@ -637,8 +637,14 @@ export default function Main() {
   ).current;
 
   useEffect(() => {
-    // document.body.classList.add("dark");
-    return () => document.body.classList.remove("dark");
+    const className = "bg-slate-50 dark:bg-slate-900";
+    className.split(" ").forEach((name) => document.body.classList.add(name));
+
+    return () => {
+      className
+        .split(" ")
+        .forEach((name) => document.body.classList.remove(name));
+    };
   }, []);
 
   return (
