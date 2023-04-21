@@ -251,7 +251,7 @@ export function makeEmbeddingsFeed(
 
         return {
           posts: postsWithSimilarity
-            // .filter((item) => item.score > 0)
+            .filter((item) => item.score > 0)
             .sort((a, b) => b.score - a.score),
           cursor: response.data.cursor,
         };
