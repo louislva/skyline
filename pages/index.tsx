@@ -70,7 +70,13 @@ function TimelineScreen(props: {
               name: name,
               // a material icon that symbolizes "custom"
               icon: "bolt",
-              description: `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`,
+              description:
+                (positivePrompt.trim() && negativePrompt.trim()) ||
+                (!positivePrompt.trim() && !negativePrompt.trim())
+                  ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
+                  : negativePrompt.trim()
+                  ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
+                  : `Custom timeline, created to show more "${positivePrompt.trim()}"`,
             },
           ] as [string, TimelineDefinitionType];
         })
