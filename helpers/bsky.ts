@@ -149,6 +149,7 @@ export async function mergeConversationsContinual(
     });
     callback(newPosts);
   }
+  callback(newPosts);
 }
 
 export type LoginResponseDataType = {
