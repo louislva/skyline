@@ -866,13 +866,20 @@ function SecurityInfo() {
 }
 
 export default function Main() {
+  // Bluesky API
+  const agent = useRef<BskyAgent>(
+    new BskyAgent({
+      service: "https://bsky.social",
+    })
+  ).current;
+
+  // Auth stuff
   const [loginResponseData, setLoginResponseData] =
     useLocalStorageState<LoginResponseDataType | null>(
       "@loginResponseData",
       null
     );
   const identifier = loginResponseData?.handle;
-
   const accessJwt = !!loginResponseData?.accessJwt
     ? (jwt.decode(loginResponseData.accessJwt) as {
         exp: number;
@@ -885,7 +892,6 @@ export default function Main() {
   const timeUntilLoginExpire = loginExpiration
     ? loginExpiration * 1000 - Date.now()
     : null;
-
   useEffect(() => {
     if (timeUntilLoginExpire) {
       const timeout = setTimeout(() => {
@@ -895,19 +901,13 @@ export default function Main() {
       return () => clearTimeout(timeout);
     }
   }, [timeUntilLoginExpire]);
-
-  const agent = useRef<BskyAgent>(
-    new BskyAgent({
-      service: "https://bsky.social",
-    })
-  ).current;
-
   useEffect(() => {
     if (loginResponseData && !agent.session) {
       agent.resumeSession(loginResponseData);
     }
   }, [loginResponseData]);
 
+  // Styling for body
   useEffect(() => {
     const className = "bg-slate-50 dark:bg-slate-900";
     className.split(" ").forEach((name) => document.body.classList.add(name));
@@ -919,6 +919,7 @@ export default function Main() {
     };
   }, []);
 
+  // Custom Timelines Installed
   const [customTimelines, setCustomTimelines] =
     useLocalStorageState<CustomTimelinesType>("@customAITimelines", {});
 
