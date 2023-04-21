@@ -164,8 +164,8 @@ function Header(props: { logout?: () => void }) {
   return (
     <>
       <div className="w-full flex flex-row items-center justify-center">
-        <div className="flex-1"></div>
-        <div className="flex flex-col items-center py-4">
+        <div className="sm:flex-1"></div>
+        <div className="flex flex-col items-start sm:items-center py-4">
           <div className="text-xl font-light">
             {/* spells skyline.gay in pride flag colors */}
             <span className="text-red-500">s</span>
@@ -183,7 +183,7 @@ function Header(props: { logout?: () => void }) {
         <div className="flex-1 flex flex-row justify-end items-center">
           {logout && (
             <button
-              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700"
+              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center ml-4 mr-0 sm:mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700"
               onClick={() => logout()}
             >
               <span className="material-icons mr-2">logout</span>
