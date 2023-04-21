@@ -361,7 +361,7 @@ function ShareTimelineButton(props: {
               res.json().then((data) => {
                 // copy link to clipboard
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/?addSharedTimeline=${data.key}`
+                  `${window.location.origin}/?tl=${data.key}`
                 );
 
                 setLoading(false);
@@ -944,30 +944,30 @@ export default function Main() {
 
   const router = useRouter();
   useEffect(() => {
-    if (router.query.addSharedTimeline) {
-      fetch(
-        `/api/shared_custom_timeline?key=${router.query.addSharedTimeline}`
-      ).then((res) => {
-        if (res.ok) {
-          res.json().then((json) => {
-            router.replace("/", undefined, {
-              scroll: false,
-              shallow: true,
+    if (router.query.tl) {
+      fetch(`/api/shared_custom_timeline?key=${router.query.tl}`).then(
+        (res) => {
+          if (res.ok) {
+            res.json().then((json) => {
+              router.replace("/", undefined, {
+                scroll: false,
+                shallow: true,
+              });
+              setCustomTimelines({
+                ...customTimelines,
+                [Date.now().toString()]: {
+                  ...json.config,
+                  sharedBy: json.created_by_handle,
+                },
+              });
             });
-            setCustomTimelines({
-              ...customTimelines,
-              [Date.now().toString()]: {
-                ...json.config,
-                sharedBy: json.created_by_handle,
-              },
-            });
-          });
-        } else {
-          throw Error("Couldn't GET shared_ai_timeline: " + res.statusText);
+          } else {
+            throw Error("Couldn't GET shared_ai_timeline: " + res.statusText);
+          }
         }
-      });
+      );
     }
-  }, [router.query.addSharedTimeline]);
+  }, [router.query.tl]);
 
   return (
     <>
