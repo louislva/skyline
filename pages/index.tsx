@@ -105,6 +105,8 @@ function TimelineScreen(props: {
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
+        customAITimelines={customAITimelines}
+        setCustomAITimelines={setCustomAITimelines}
       />
       <Timeline
         key={timelineId}
@@ -161,6 +163,8 @@ function Header() {
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
+  customAITimelines: CustomAITimelinesType;
+  setCustomAITimelines: (value: CustomAITimelinesType) => void;
   timelines: typeof TIMELINES;
   setCreateTimelineModalOpen: (open: boolean) => void;
   setEditingCustomAITimelineId: (id: string | null) => void;
@@ -168,6 +172,8 @@ function TimelinePicker(props: {
   const {
     timelineId,
     setTimelineId,
+    customAITimelines,
+    setCustomAITimelines,
     timelines,
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
@@ -244,10 +250,27 @@ function TimelinePicker(props: {
                 <span className="material-icons mr-1">edit</span>
                 Edit
               </button>
-              {/* <button className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400">
+              <button
+                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400"
+                onClick={() => {
+                  // are you sure alert?
+                  if (
+                    confirm(
+                      `Are you sure you want to delete "${customAITimelines[timelineId].name}"?`
+                    )
+                  ) {
+                    const newCustomAITimelines = {
+                      ...customAITimelines,
+                    };
+                    delete newCustomAITimelines[timelineId];
+                    setCustomAITimelines(newCustomAITimelines);
+                    setTimelineId("following");
+                  }
+                }}
+              >
                 <span className="material-icons mr-1">delete</span>
                 Delete
-              </button> */}
+              </button>
             </>
           )}
         </div>
