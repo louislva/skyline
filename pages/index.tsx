@@ -466,7 +466,7 @@ function CreateTimelineModal(props: {
       onClick={() => setOpen(false)}
     >
       <div
-        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-128"
+        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-128 dark:border-2 dark:border-slate-600"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-xl font-bold mb-4">Create a timeline</div>
@@ -475,7 +475,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Wholesome TL"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2 text-black"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -486,7 +486,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Wholesome tweets, kindness, love, fun banter"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
           />
@@ -497,7 +497,7 @@ function CreateTimelineModal(props: {
           <input
             type="text"
             placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2"
+            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
           />
@@ -576,14 +576,14 @@ function LoginScreen(props: {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4"
+          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4"
+          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
         />
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
           Login
@@ -638,6 +638,7 @@ export default function Main() {
 
   useEffect(() => {
     // document.body.classList.add("dark");
+    return () => document.body.classList.remove("dark");
   }, []);
 
   return (
@@ -646,7 +647,7 @@ export default function Main() {
         <title>Skyline</title>
         <link rel="icon" href="/skyline-16.png" />
       </Head>
-      <div className="w-full min-h-screen bg-slate-100 dark:bg-slate-900 dark:text-slate-100">
+      <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100">
         {identifier ? (
           <TimelineScreen
             identifier={identifier}
