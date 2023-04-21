@@ -2,9 +2,12 @@ import { BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
 import { ExpandedPostView, RecordType, SkylinePostType } from "./contentTypes";
 import { ThreadViewPost } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import { Response as GetPostThreadResponse } from "@atproto/api/dist/client/types/app/bsky/feed/getPostThread";
+import Cache from "./cache";
 
 let followsCache: ProfileView[] | null = null;
 let followersCache: ProfileView[] | null = null;
+let threadCache = new Cache<GetPostThreadResponse>("threadCache");
 
 export async function getFollows(
   agent: BskyAgent,
@@ -79,6 +82,15 @@ export async function getMutuals(
   const mutuals = follows.filter((f) => isDidAFollower[f.did]);
   return mutuals;
 }
+async function getThread(agent: BskyAgent, uri: string) {
+  if (threadCache.get(uri)) return threadCache.get(uri)!;
+
+  const response = await agent.getPostThread({
+    uri,
+  });
+  if (response.success) threadCache.set(uri, response);
+  return response;
+}
 export async function mergeConversationsContinual(
   agent: BskyAgent,
   allPosts_: SkylinePostType[],
@@ -101,9 +113,7 @@ export async function mergeConversationsContinual(
           // Make sure the parent post is in the list
           let newPosts = [];
           try {
-            const response = await agent.getPostThread({
-              uri: record.reply.parent.uri,
-            });
+            const response = await getThread(agent, record.reply.parent.uri);
 
             if (response.success) {
               let node: ThreadViewPost | null = response.data.thread.post

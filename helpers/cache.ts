@@ -1,19 +1,24 @@
 // Cache behaves like a simple JSON object
 // But, behind the scenes, it also stores the cache in localStorage
-const CHUNK_LENGTH = 1000 * 10;
-const MAX_CHUNKS = 4; // KEEP 12 HOURS OF CACHE
 
-type CacheType = {
-  [key: string]: any;
-};
-export default class Cache {
+export default class Cache<T> {
   name: string;
   cacheByTimestamp: {
-    [timestamp: string]: CacheType;
+    [timestamp: string]: {
+      [key: string]: T;
+    };
   };
+  chunkLength: number;
+  maxChunks: number;
 
-  constructor(name: string) {
+  constructor(
+    name: string,
+    storeDuration: number = 1000 * 60 * 60 * 12 /* 12 hours */
+  ) {
     this.name = "@cache/" + name;
+
+    this.chunkLength = storeDuration / 10;
+    this.maxChunks = 10;
 
     const storedCacheByTimestamp =
       typeof window !== "undefined" ? localStorage.getItem(this.name) : "{}";
@@ -26,10 +31,10 @@ export default class Cache {
     this.save();
   }
   removeExpired() {
-    const nowChunk = Math.floor(Date.now() / CHUNK_LENGTH);
+    const nowChunk = Math.floor(Date.now() / this.chunkLength);
     this.cacheByTimestamp = Object.fromEntries(
       Object.entries(this.cacheByTimestamp).filter(
-        ([key, _cache]) => parseInt(key) + MAX_CHUNKS > nowChunk
+        ([key, _cache]) => parseInt(key) + this.maxChunks > nowChunk
       )
     );
   }
@@ -37,7 +42,7 @@ export default class Cache {
     if (typeof window !== "undefined")
       localStorage.setItem(this.name, JSON.stringify(this.cacheByTimestamp));
   }
-  get(key: string): any {
+  get(key: string): T | undefined {
     return Object.entries(this.cacheByTimestamp)
       .sort((a, b) => {
         const aKey = parseInt(a[0]);
@@ -46,8 +51,8 @@ export default class Cache {
       })
       .find((cache) => cache[1][key])?.[1][key];
   }
-  set(key: string, value: any) {
-    const nowChunk = Math.floor(Date.now() / CHUNK_LENGTH);
+  set(key: string, value: T) {
+    const nowChunk = Math.floor(Date.now() / this.chunkLength);
     this.cacheByTimestamp[nowChunk] = this.cacheByTimestamp[nowChunk] || {};
     this.cacheByTimestamp[nowChunk][key] = value;
     this.save();
