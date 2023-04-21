@@ -1,5 +1,8 @@
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { mergeConversationsContinual } from "@/helpers/bsky";
+import {
+  LoginResponseDataType,
+  mergeConversationsContinual,
+} from "@/helpers/bsky";
 import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
@@ -11,6 +14,7 @@ import {
 } from "@/helpers/makeFeeds";
 import { BskyAgent } from "@atproto/api";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import * as jwt from "jsonwebtoken";
 import moment from "moment";
 import Head from "next/head";
 import Link from "next/link";
@@ -57,15 +61,15 @@ type TimelineIdType = string;
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
+  setLoginResponseData: (value: LoginResponseDataType | null) => void;
   egoIdentifier: string;
-  setEgoIdentifier: (identifier: string | null) => void;
   agent: BskyAgent;
   customAITimelines: CustomAITimelinesType;
   setCustomAITimelines: (value: CustomAITimelinesType) => void;
 }) {
   const {
+    setLoginResponseData,
     egoIdentifier,
-    setEgoIdentifier,
     agent,
     customAITimelines,
     setCustomAITimelines,
@@ -112,7 +116,7 @@ function TimelineScreen(props: {
 
   return (
     <div className="w-full flex flex-col items-center px-2">
-      <Header />
+      <Header setLoginResponseData={setLoginResponseData} />
       <TimelinePicker
         timelineId={timelineId}
         setTimelineId={setTimelineId}
@@ -145,7 +149,10 @@ function TimelineScreen(props: {
   );
 }
 
-function Header() {
+function Header(props: {
+  setLoginResponseData: (value: LoginResponseDataType | null) => void;
+}) {
+  const { setLoginResponseData } = props;
   const subheaders = [
     "it's a memorable domain! (and it was $5 off)",
     "better algorithms make better people",
@@ -158,18 +165,32 @@ function Header() {
 
   return (
     <>
-      <div className="text-xl font-light mt-4">
-        {/* spells skyline.gay in pride flag colors */}
-        <span className="text-red-500">s</span>
-        <span className="text-orange-500">k</span>
-        <span className="text-yellow-500">y</span>
-        <span className="text-green-500">l</span>
-        <span className="text-blue-500">i</span>
-        <span className="text-purple-500">n</span>
-        <span className="text-pink-500">e</span>
-      </div>
-      <div className="text-sm font-light text-slate-900 dark:text-slate-300 mb-4">
-        {subheader}
+      <div className="w-full flex flex-row items-center justify-center">
+        <div className="flex-1"></div>
+        <div className="flex flex-col items-center py-4">
+          <div className="text-xl font-light">
+            {/* spells skyline.gay in pride flag colors */}
+            <span className="text-red-500">s</span>
+            <span className="text-orange-500">k</span>
+            <span className="text-yellow-500">y</span>
+            <span className="text-green-500">l</span>
+            <span className="text-blue-500">i</span>
+            <span className="text-purple-500">n</span>
+            <span className="text-pink-500">e</span>
+          </div>
+          <div className="text-sm font-light text-slate-900 dark:text-slate-300">
+            {subheader}
+          </div>
+        </div>
+        <div className="flex-1 flex flex-row justify-end items-center">
+          <button
+            className="text-base font-light text-white bg-slate-800 border border-slate-700 py-2 px-4 rounded-lg flex flex-row items-center mr-3"
+            onClick={() => setLoginResponseData(null)}
+          >
+            <span className="material-icons mr-2">logout</span>
+            Logout
+          </button>
+        </div>
       </div>
     </>
   );
@@ -737,10 +758,10 @@ function ConfigureTimelineModal(props: {
 
 // LOGIN SCREEN
 function LoginScreen(props: {
-  setIdentifier: (identifier: string | null) => void;
+  setLoginResponseData: (data: LoginResponseDataType | null) => void;
   agent: BskyAgent;
 }) {
-  const { setIdentifier, agent } = props;
+  const { setLoginResponseData, agent } = props;
   const login = (username: string, password: string) => {
     setError(null);
     agent
@@ -750,16 +771,19 @@ function LoginScreen(props: {
       })
       .then((response) => {
         if (response.success) {
-          setIdentifier(response.data.did);
+          setLoginResponseData({
+            ...response.data,
+            refreshJwt: "", // removing this for security reasons
+          });
         } else {
           // Error
-          setIdentifier(null);
+          setLoginResponseData(null);
           setError("Error");
         }
       })
       .catch((err) => {
         // Error
-        setIdentifier(null);
+        setLoginResponseData(null);
         setError(err.message);
       });
   };
@@ -841,12 +865,47 @@ function SecurityInfo() {
 }
 
 export default function Main() {
-  const [identifier, setIdentifier] = useState<string | null>(null);
+  const [loginResponseData, setLoginResponseData] =
+    useLocalStorageState<LoginResponseDataType | null>(
+      "@loginResponseData",
+      null
+    );
+  const identifier = loginResponseData?.handle;
+
+  const accessJwt = !!loginResponseData?.accessJwt
+    ? (jwt.decode(loginResponseData.accessJwt) as {
+        exp: number;
+        iat: number;
+        scope: string;
+        sub: string;
+      })
+    : null;
+  const loginExpiration = accessJwt?.exp;
+  const timeUntilLoginExpire = loginExpiration
+    ? loginExpiration * 1000 - Date.now()
+    : null;
+
+  useEffect(() => {
+    if (timeUntilLoginExpire) {
+      const timeout = setTimeout(() => {
+        setLoginResponseData(null);
+      }, Math.max(timeUntilLoginExpire, 0));
+
+      return () => clearTimeout(timeout);
+    }
+  }, [timeUntilLoginExpire]);
+
   const agent = useRef<BskyAgent>(
     new BskyAgent({
       service: "https://bsky.social",
     })
   ).current;
+
+  useEffect(() => {
+    if (loginResponseData && !agent.session) {
+      agent.resumeSession(loginResponseData);
+    }
+  }, [loginResponseData]);
 
   useEffect(() => {
     const className = "bg-slate-50 dark:bg-slate-900";
@@ -898,14 +957,17 @@ export default function Main() {
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100">
         {identifier ? (
           <TimelineScreen
+            setLoginResponseData={setLoginResponseData}
             egoIdentifier={identifier}
-            setEgoIdentifier={setIdentifier}
             agent={agent}
             customAITimelines={customAITimelines}
             setCustomAITimelines={setCustomAITimelines}
           />
         ) : (
-          <LoginScreen setIdentifier={setIdentifier} agent={agent} />
+          <LoginScreen
+            setLoginResponseData={setLoginResponseData}
+            agent={agent}
+          />
         )}
       </div>
     </>
