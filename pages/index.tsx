@@ -32,13 +32,14 @@ import {
 type TimelinesType = {
   [id: string]: TimelineDefinitionType;
 };
-type CustomAITimelinesType = {
-  [id: string]: {
-    name: string;
-    positivePrompt: string;
-    negativePrompt: string;
-    sharedBy?: string;
-  };
+type CustomTimelineType = {
+  name: string;
+  positivePrompt: string;
+  negativePrompt: string;
+  sharedBy?: string;
+};
+type CustomTimelinesType = {
+  [id: string]: CustomTimelineType;
 };
 const TIMELINES: {
   [id: string]: TimelineDefinitionType;
@@ -64,22 +65,22 @@ function TimelineScreen(props: {
   setLoginResponseData: (value: LoginResponseDataType | null) => void;
   egoIdentifier: string;
   agent: BskyAgent;
-  customAITimelines: CustomAITimelinesType;
-  setCustomAITimelines: (value: CustomAITimelinesType) => void;
+  customTimelines: CustomTimelinesType;
+  setCustomTimelines: (value: CustomTimelinesType) => void;
 }) {
   const {
     setLoginResponseData,
     egoIdentifier,
     agent,
-    customAITimelines,
-    setCustomAITimelines,
+    customTimelines,
+    setCustomTimelines,
   } = props;
 
   const timelines = useMemo(() => {
     return {
       ...TIMELINES,
       ...Object.fromEntries(
-        Object.entries(customAITimelines).map(([id, config]) => {
+        Object.entries(customTimelines).map(([id, config]) => {
           const { name, positivePrompt, negativePrompt, sharedBy } = config;
           return [
             id,
@@ -100,7 +101,7 @@ function TimelineScreen(props: {
         })
       ),
     };
-  }, [customAITimelines]);
+  }, [customTimelines]);
 
   const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
     "@timelineId",
@@ -124,8 +125,8 @@ function TimelineScreen(props: {
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
-        customAITimelines={customAITimelines}
-        setCustomAITimelines={setCustomAITimelines}
+        customTimelines={customTimelines}
+        setCustomTimelines={setCustomTimelines}
       />
       <Timeline
         key={timelineId}
@@ -136,8 +137,8 @@ function TimelineScreen(props: {
       />
       {(createTimelineModal || editingCustomAITimelineId) && (
         <ConfigureTimelineModal
-          customAITimelines={customAITimelines}
-          setCustomAITimelines={setCustomAITimelines}
+          customTimelines={customTimelines}
+          setCustomTimelines={setCustomTimelines}
           close={() => {
             setCreateTimelineModalOpen(false);
             setEditingCustomAITimelineId(null);
@@ -199,8 +200,8 @@ function Header(props: { logout?: () => void }) {
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
-  customAITimelines: CustomAITimelinesType;
-  setCustomAITimelines: (value: CustomAITimelinesType) => void;
+  customTimelines: CustomTimelinesType;
+  setCustomTimelines: (value: CustomTimelinesType) => void;
   egoIdentifier: string;
   timelines: typeof TIMELINES;
   setCreateTimelineModalOpen: (open: boolean) => void;
@@ -209,8 +210,8 @@ function TimelinePicker(props: {
   const {
     timelineId,
     setTimelineId,
-    customAITimelines,
-    setCustomAITimelines,
+    customTimelines,
+    setCustomTimelines,
     egoIdentifier,
     timelines,
     setCreateTimelineModalOpen,
@@ -277,7 +278,7 @@ function TimelinePicker(props: {
             <>
               <ShareTimelineButton
                 key={timelineId}
-                timelineConfig={customAITimelines[timelineId]}
+                timelineConfig={customTimelines[timelineId]}
                 egoIdentifier={egoIdentifier}
               />
               <button
@@ -295,14 +296,14 @@ function TimelinePicker(props: {
                   // are you sure alert?
                   if (
                     confirm(
-                      `Are you sure you want to delete "${customAITimelines[timelineId].name}"?`
+                      `Are you sure you want to delete "${customTimelines[timelineId].name}"?`
                     )
                   ) {
-                    const newCustomAITimelines = {
-                      ...customAITimelines,
+                    const newCustomTimelines = {
+                      ...customTimelines,
                     };
-                    delete newCustomAITimelines[timelineId];
-                    setCustomAITimelines(newCustomAITimelines);
+                    delete newCustomTimelines[timelineId];
+                    setCustomTimelines(newCustomTimelines);
                     setTimelineId("following");
                   }
                 }}
@@ -318,7 +319,7 @@ function TimelinePicker(props: {
   );
 }
 function ShareTimelineButton(props: {
-  timelineConfig: CustomAITimelinesType[string];
+  timelineConfig: CustomTimelineType;
   egoIdentifier: string;
 }) {
   const { timelineConfig, egoIdentifier } = props;
@@ -675,19 +676,19 @@ function Modal(props: { children: ReactNode; close: () => void }) {
   );
 }
 function ConfigureTimelineModal(props: {
-  customAITimelines: CustomAITimelinesType;
-  setCustomAITimelines: (timelines: CustomAITimelinesType) => void;
+  customTimelines: CustomTimelinesType;
+  setCustomTimelines: (timelines: CustomTimelinesType) => void;
   close: () => void;
   editingCustomAITimelineId: string | null;
 }) {
   const {
-    customAITimelines,
-    setCustomAITimelines,
+    customTimelines,
+    setCustomTimelines,
     close,
     editingCustomAITimelineId,
   } = props;
   const editingCustomAITimeline = editingCustomAITimelineId
-    ? customAITimelines[editingCustomAITimelineId]
+    ? customTimelines[editingCustomAITimelineId]
     : null;
   const [name, setName] = useState(editingCustomAITimeline?.name || "");
   const [positivePrompt, setPositivePrompt] = useState(
@@ -738,8 +739,8 @@ function ConfigureTimelineModal(props: {
         <button
           className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto"
           onClick={() => {
-            setCustomAITimelines({
-              ...customAITimelines,
+            setCustomTimelines({
+              ...customTimelines,
               [editingCustomAITimelineId || Date.now().toString()]: {
                 name: name.trim(),
                 positivePrompt: positivePrompt.trim(),
@@ -918,8 +919,8 @@ export default function Main() {
     };
   }, []);
 
-  const [customAITimelines, setCustomAITimelines] =
-    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  const [customTimelines, setCustomTimelines] =
+    useLocalStorageState<CustomTimelinesType>("@customAITimelines", {});
 
   const router = useRouter();
   useEffect(() => {
@@ -933,8 +934,8 @@ export default function Main() {
               scroll: false,
               shallow: true,
             });
-            setCustomAITimelines({
-              ...customAITimelines,
+            setCustomTimelines({
+              ...customTimelines,
               [Date.now().toString()]: {
                 ...json.config,
                 sharedBy: json.created_by_handle,
@@ -960,8 +961,8 @@ export default function Main() {
             setLoginResponseData={setLoginResponseData}
             egoIdentifier={identifier}
             agent={agent}
-            customAITimelines={customAITimelines}
-            setCustomAITimelines={setCustomAITimelines}
+            customTimelines={customTimelines}
+            setCustomTimelines={setCustomTimelines}
           />
         ) : (
           <LoginScreen
