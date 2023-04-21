@@ -440,7 +440,7 @@ function Timeline(props: {
           />
           <div className="text-slate-800 dark:text-slate-400">Loading...</div>
         </div>
-      ) : (
+      ) : posts.length > 0 ? (
         posts.map((post, index) => (
           <Post
             agent={agent}
@@ -449,6 +449,25 @@ function Timeline(props: {
             isLastPost={index === posts.length - 1}
           />
         ))
+      ) : (
+        <div className="flex flex-col justify-center items-center py-32 text-slate-800 dark:text-slate-400">
+          <div className="material-icons text-4xl mb-2">
+            sentiment_dissatisfied
+          </div>
+          <div className="text-2xl">No posts in your timeline</div>
+          <div className="text-lg mt-2 text-center">
+            Try following some more accounts! We wholeheartedly recommend:{" "}
+            <a
+              href="https://staging.bsky.app/profile/louis02x.bsky.social"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-700 dark:text-blue-400"
+            >
+              louis02x.bsky.social
+            </a>{" "}
+            (it's me lol)
+          </div>
+        </div>
       )}
     </div>
   );
