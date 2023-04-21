@@ -14,6 +14,7 @@ import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import {
   Fragment,
   ReactNode,
@@ -32,6 +33,7 @@ type CustomAITimelinesType = {
     name: string;
     positivePrompt: string;
     negativePrompt: string;
+    sharedBy?: string;
   };
 };
 const TIMELINES: {
@@ -55,28 +57,33 @@ type TimelineIdType = string;
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
-  identifier: string;
-  setIdentifier: (identifier: string | null) => void;
+  egoIdentifier: string;
+  setEgoIdentifier: (identifier: string | null) => void;
   agent: BskyAgent;
+  customAITimelines: CustomAITimelinesType;
+  setCustomAITimelines: (value: CustomAITimelinesType) => void;
 }) {
-  const { identifier, setIdentifier, agent } = props;
-  const [timelineId, setTimelineId] = useState<TimelineIdType>("following");
-  const [customAITimelines, setCustomAITimelines] =
-    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  const {
+    egoIdentifier,
+    setEgoIdentifier,
+    agent,
+    customAITimelines,
+    setCustomAITimelines,
+  } = props;
 
   const timelines = useMemo(() => {
     return {
       ...TIMELINES,
       ...Object.fromEntries(
         Object.entries(customAITimelines).map(([id, config]) => {
-          const { name, positivePrompt, negativePrompt } = config;
+          const { name, positivePrompt, negativePrompt, sharedBy } = config;
           return [
             id,
             {
               ...makeEmbeddingsFeed(positivePrompt, negativePrompt),
               name: name,
               // a material icon that symbolizes "custom"
-              icon: "bolt",
+              icon: sharedBy ? "public" : "bolt",
               description:
                 (positivePrompt.trim() && negativePrompt.trim()) ||
                 (!positivePrompt.trim() && !negativePrompt.trim())
@@ -91,6 +98,13 @@ function TimelineScreen(props: {
     };
   }, [customAITimelines]);
 
+  const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
+    "@timelineId",
+    "following"
+  );
+  // fallback if your localStorage stored timelineId doesn't exist any more
+  const timelineId = timelines[timelineId_] ? timelineId_ : "following";
+
   const [createTimelineModal, setCreateTimelineModalOpen] = useState(false);
   const [editingCustomAITimelineId, setEditingCustomAITimelineId] = useState<
     string | null
@@ -102,6 +116,7 @@ function TimelineScreen(props: {
       <TimelinePicker
         timelineId={timelineId}
         setTimelineId={setTimelineId}
+        egoIdentifier={egoIdentifier}
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
@@ -112,7 +127,7 @@ function TimelineScreen(props: {
         key={timelineId}
         timelineId={timelineId}
         agent={agent}
-        identifier={identifier}
+        identifier={egoIdentifier}
         timelines={timelines}
       />
       {(createTimelineModal || editingCustomAITimelineId) && (
@@ -165,6 +180,7 @@ function TimelinePicker(props: {
   setTimelineId: (timelineId: TimelineIdType) => void;
   customAITimelines: CustomAITimelinesType;
   setCustomAITimelines: (value: CustomAITimelinesType) => void;
+  egoIdentifier: string;
   timelines: typeof TIMELINES;
   setCreateTimelineModalOpen: (open: boolean) => void;
   setEditingCustomAITimelineId: (id: string | null) => void;
@@ -174,6 +190,7 @@ function TimelinePicker(props: {
     setTimelineId,
     customAITimelines,
     setCustomAITimelines,
+    egoIdentifier,
     timelines,
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
@@ -237,10 +254,11 @@ function TimelinePicker(props: {
         <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
           {!Object.keys(TIMELINES).includes(timelineId) && (
             <>
-              {/* <button className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400">
-                <span className="material-icons mr-1">share</span>
-                Share timeline prompt
-              </button> */}
+              <ShareTimelineButton
+                key={timelineId}
+                timelineConfig={customAITimelines[timelineId]}
+                egoIdentifier={egoIdentifier}
+              />
               <button
                 className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400"
                 onClick={() => {
@@ -276,6 +294,81 @@ function TimelinePicker(props: {
         </div>
       )}
     </div>
+  );
+}
+function ShareTimelineButton(props: {
+  timelineConfig: CustomAITimelinesType[string];
+  egoIdentifier: string;
+}) {
+  const { timelineConfig, egoIdentifier } = props;
+  const [loading, setLoading] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (copied) {
+      const timeout = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+      return () => {
+        clearTimeout(timeout);
+      };
+    }
+  }, [copied]);
+
+  return (
+    <button
+      className={
+        "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 " +
+        (loading ? "opacity-60 cursor-default" : "")
+      }
+      onClick={async () => {
+        if (loading) return;
+        setLoading(true);
+        const response = await fetch("/api/shared_custom_timeline", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            config: timelineConfig,
+            created_by_handle: egoIdentifier,
+          }),
+        })
+          .then((res) => {
+            if (res.ok) {
+              res.json().then((data) => {
+                // copy link to clipboard
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/?addSharedTimeline=${data.key}`
+                );
+
+                setLoading(false);
+                setCopied(true);
+              });
+            } else {
+              throw new Error(
+                "Couldn't POST shared_custom_timeline: " + res.status
+              );
+            }
+          })
+          .catch((error) => {
+            setLoading(false);
+            throw error;
+          });
+      }}
+    >
+      {copied ? (
+        <>
+          <span className="material-icons mr-1">content_copy</span>
+          Copied link!
+        </>
+      ) : (
+        <>
+          <span className="material-icons mr-1">share</span>
+          Share timeline prompt
+        </>
+      )}
+    </button>
   );
 }
 
@@ -420,9 +513,9 @@ function Post(props: {
                   : "")
               }
             >
-          {record.reply && (
+              {record.reply && (
                 <>
-              <div className="material-icons mr-1">reply</div>
+                  <div className="material-icons mr-1">reply</div>
                   <div>Replied</div>
                 </>
               )}
@@ -766,6 +859,36 @@ export default function Main() {
     };
   }, []);
 
+  const [customAITimelines, setCustomAITimelines] =
+    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+
+  const router = useRouter();
+  useEffect(() => {
+    if (router.query.addSharedTimeline) {
+      fetch(
+        `/api/shared_custom_timeline?key=${router.query.addSharedTimeline}`
+      ).then((res) => {
+        if (res.ok) {
+          res.json().then((json) => {
+            router.replace("/", undefined, {
+              scroll: false,
+              shallow: true,
+            });
+            setCustomAITimelines({
+              ...customAITimelines,
+              [Date.now().toString()]: {
+                ...json.config,
+                sharedBy: json.created_by_handle,
+              },
+            });
+          });
+        } else {
+          throw Error("Couldn't GET shared_ai_timeline: " + res.statusText);
+        }
+      });
+    }
+  }, [router.query.addSharedTimeline]);
+
   return (
     <>
       <Head>
@@ -775,9 +898,11 @@ export default function Main() {
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100">
         {identifier ? (
           <TimelineScreen
-            identifier={identifier}
-            setIdentifier={setIdentifier}
+            egoIdentifier={identifier}
+            setEgoIdentifier={setIdentifier}
             agent={agent}
+            customAITimelines={customAITimelines}
+            setCustomAITimelines={setCustomAITimelines}
           />
         ) : (
           <LoginScreen setIdentifier={setIdentifier} agent={agent} />

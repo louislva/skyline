@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useLocalStorageState<T>(
   key: string,
@@ -9,14 +9,13 @@ export function useLocalStorageState<T>(
   // Otherwise, uses the value from localStorage
   // Every time the state is set, it is also saved to localStorage
 
-  const [state, setState] = useState<T>(() => {
+  const [state, setState] = useState<T>(defaultValue);
+  useEffect(() => {
     const value = localStorage.getItem(key);
     if (value) {
-      return JSON.parse(value);
-    } else {
-      return defaultValue;
+      setState(JSON.parse(value));
     }
-  });
+  }, []);
 
   const setStateAndSave = (value: T) => {
     localStorage.setItem(key, JSON.stringify(value));
