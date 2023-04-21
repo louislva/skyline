@@ -14,7 +14,14 @@ import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
 import Head from "next/head";
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 // TIMELINES
 type TimelinesType = {
@@ -44,7 +51,7 @@ const TIMELINES: {
       "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
   },
 };
-type TimelineIdType = keyof typeof TIMELINES;
+type TimelineIdType = string;
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
@@ -85,6 +92,9 @@ function TimelineScreen(props: {
   }, [customAITimelines]);
 
   const [createTimelineModal, setCreateTimelineModalOpen] = useState(false);
+  const [editingCustomAITimelineId, setEditingCustomAITimelineId] = useState<
+    string | null
+  >(null);
 
   return (
     <div className="w-full flex flex-col items-center px-2">
@@ -94,6 +104,7 @@ function TimelineScreen(props: {
         setTimelineId={setTimelineId}
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
+        setEditingCustomAITimelineId={setEditingCustomAITimelineId}
       />
       <Timeline
         key={timelineId}
@@ -102,11 +113,15 @@ function TimelineScreen(props: {
         identifier={identifier}
         timelines={timelines}
       />
-      {createTimelineModal && (
-        <CreateTimelineModal
+      {(createTimelineModal || editingCustomAITimelineId) && (
+        <ConfigureTimelineModal
           customAITimelines={customAITimelines}
           setCustomAITimelines={setCustomAITimelines}
-          setOpen={setCreateTimelineModalOpen}
+          close={() => {
+            setCreateTimelineModalOpen(false);
+            setEditingCustomAITimelineId(null);
+          }}
+          editingCustomAITimelineId={editingCustomAITimelineId}
         />
       )}
     </div>
@@ -148,9 +163,15 @@ function TimelinePicker(props: {
   setTimelineId: (timelineId: TimelineIdType) => void;
   timelines: typeof TIMELINES;
   setCreateTimelineModalOpen: (open: boolean) => void;
+  setEditingCustomAITimelineId: (id: string | null) => void;
 }) {
-  const { timelineId, setTimelineId, timelines, setCreateTimelineModalOpen } =
-    props;
+  const {
+    timelineId,
+    setTimelineId,
+    timelines,
+    setCreateTimelineModalOpen,
+    setEditingCustomAITimelineId,
+  } = props;
   const [hoveredTimelineId, setHoveredTimelineId] =
     useState<TimelineIdType | null>(null);
 
@@ -202,10 +223,33 @@ function TimelinePicker(props: {
         </button>
       </div>
 
-      {hoveredTimelineId && (
-        <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
-          <b>{timelines[hoveredTimelineId].name}:</b>{" "}
-          {timelines[hoveredTimelineId].description}
+      <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
+        <b>{timelines[hoveredTimelineId || timelineId].name}:</b>{" "}
+        {timelines[hoveredTimelineId || timelineId].description}
+      </div>
+      {(!hoveredTimelineId || hoveredTimelineId === timelineId) && (
+        <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
+          {!Object.keys(TIMELINES).includes(timelineId) && (
+            <>
+              {/* <button className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400">
+                <span className="material-icons mr-1">share</span>
+                Share timeline prompt
+              </button> */}
+              <button
+                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400"
+                onClick={() => {
+                  setEditingCustomAITimelineId(timelineId);
+                }}
+              >
+                <span className="material-icons mr-1">edit</span>
+                Edit
+              </button>
+              {/* <button className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400">
+                <span className="material-icons mr-1">delete</span>
+                Delete
+              </button> */}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -456,76 +500,101 @@ function Post(props: {
   );
 }
 
-function CreateTimelineModal(props: {
-  customAITimelines: CustomAITimelinesType;
-  setCustomAITimelines: (timelines: CustomAITimelinesType) => void;
-  setOpen: (open: boolean) => void;
-}) {
-  const { customAITimelines, setCustomAITimelines, setOpen } = props;
-  const [name, setName] = useState("");
-  const [positivePrompt, setPositivePrompt] = useState("");
-  const [negativePrompt, setNegativePrompt] = useState("");
-
+function Modal(props: { children: ReactNode; close: () => void }) {
+  const { children, close } = props;
   return (
     <div
       className="fixed top-0 left-0 w-screen h-screen bg-black/50 backdrop-blur-md	flex justify-center items-center"
-      onClick={() => setOpen(false)}
+      onClick={() => close()}
     >
       <div
         className="bg-white dark:bg-slate-800 rounded-lg p-4 w-128 dark:border-2 dark:border-slate-600"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-xl font-bold mb-4">Create a timeline</div>
-        <div className="flex flex-col gap-2">
-          <label>Title</label>
-          <input
-            type="text"
-            placeholder="Wholesome TL"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2 text-black"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <label className="flex flex-row items-center">
-            I want to see more of...
-            <span className="material-icons text-green-600 ml-1">thumb_up</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Wholesome tweets, kindness, love, fun banter"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
-            value={positivePrompt}
-            onChange={(e) => setPositivePrompt(e.target.value)}
-          />
-          <label className="flex flex-row items-center">
-            I want to see less of...
-            <span className="material-icons text-red-600 ml-1">thumb_down</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
-            className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
-            value={negativePrompt}
-            onChange={(e) => setNegativePrompt(e.target.value)}
-          />
-          <button
-            className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto"
-            onClick={() => {
-              setCustomAITimelines({
-                ...customAITimelines,
-                [Date.now().toString()]: {
-                  name: name.trim(),
-                  positivePrompt: positivePrompt.trim(),
-                  negativePrompt: negativePrompt.trim(),
-                },
-              });
-              setOpen(false);
-            }}
-          >
-            Create
-          </button>
-        </div>
+        {props.children}
       </div>
     </div>
+  );
+}
+function ConfigureTimelineModal(props: {
+  customAITimelines: CustomAITimelinesType;
+  setCustomAITimelines: (timelines: CustomAITimelinesType) => void;
+  close: () => void;
+  editingCustomAITimelineId: string | null;
+}) {
+  const {
+    customAITimelines,
+    setCustomAITimelines,
+    close,
+    editingCustomAITimelineId,
+  } = props;
+  const editingCustomAITimeline = editingCustomAITimelineId
+    ? customAITimelines[editingCustomAITimelineId]
+    : null;
+  const [name, setName] = useState(editingCustomAITimeline?.name || "");
+  const [positivePrompt, setPositivePrompt] = useState(
+    editingCustomAITimeline?.positivePrompt || ""
+  );
+  const [negativePrompt, setNegativePrompt] = useState(
+    editingCustomAITimeline?.negativePrompt || ""
+  );
+
+  return (
+    <Modal close={close}>
+      <div className="text-xl font-bold mb-4">
+        {editingCustomAITimeline
+          ? `Edit "${editingCustomAITimeline.name}" timeline`
+          : "Create a timeline"}
+      </div>
+      <div className="flex flex-col gap-2">
+        <label>Title</label>
+        <input
+          type="text"
+          placeholder="Wholesome TL"
+          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2 text-black"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <label className="flex flex-row items-center">
+          I want to see more of...
+          <span className="material-icons text-green-600 ml-1">thumb_up</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Wholesome tweets, kindness, love, fun banter"
+          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
+          value={positivePrompt}
+          onChange={(e) => setPositivePrompt(e.target.value)}
+        />
+        <label className="flex flex-row items-center">
+          I want to see less of...
+          <span className="material-icons text-red-600 ml-1">thumb_down</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
+          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
+          value={negativePrompt}
+          onChange={(e) => setNegativePrompt(e.target.value)}
+        />
+        <button
+          className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto"
+          onClick={() => {
+            setCustomAITimelines({
+              ...customAITimelines,
+              [editingCustomAITimelineId || Date.now().toString()]: {
+                name: name.trim(),
+                positivePrompt: positivePrompt.trim(),
+                negativePrompt: negativePrompt.trim(),
+              },
+            });
+            close();
+          }}
+        >
+          {editingCustomAITimeline ? "Save" : "Create"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
