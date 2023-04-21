@@ -28,6 +28,12 @@ export default async function handler(req: any, res: any) {
           key,
         }
       );
+      await db.one(
+        `UPDATE shared_custom_timeline SET installs = installs + 1 WHERE key = $/key/ RETURNING *`,
+        {
+          key,
+        }
+      );
       res.status(200).json(result);
     } else {
       return res.status(405).end();
