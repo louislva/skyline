@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import * as R from "ramda";
 
 export function useLocalStorageState<T>(
   key: string,
@@ -24,4 +25,43 @@ export function useLocalStorageState<T>(
   };
 
   return [state, setStateAndSave];
+}
+
+type CacheType = any;
+export function useCache(
+  interval: number = 1000 * 60 * 60
+): [CacheType, (value: CacheType) => void] {
+  const getTimeSegment = () => Math.floor(Date.now() / interval);
+
+  const [segmentedCache, setSegmentedCache] = useState<{
+    [unixHour: string]: CacheType;
+  }>({});
+  console.log("segmentedCache", segmentedCache);
+
+  const mergedCache = useMemo(() => {
+    const filteredSegments = Object.entries(segmentedCache).filter(
+      ([unixHour]) => getTimeSegment() - parseInt(unixHour) > 12 // Only keep up to 24 hours in cache
+    );
+    console.log("filteredSegments", filteredSegments);
+    return R.mergeAll(filteredSegments.map(([_, cache]) => cache));
+  }, [segmentedCache]);
+  console.log("mergedCache", mergedCache);
+
+  useEffect(() => {
+    setSegmentedCache(JSON.parse(localStorage.getItem("@globalCache") || "{}"));
+  }, []);
+
+  const updateCache = (value: CacheType) => {
+    const newSegmentedCache = {
+      ...segmentedCache,
+      [getTimeSegment()]: {
+        ...(segmentedCache[getTimeSegment()] || {}),
+        ...value,
+      },
+    };
+    setSegmentedCache(newSegmentedCache);
+    localStorage.setItem("@globalCache", JSON.stringify(newSegmentedCache));
+  };
+
+  return [mergedCache, updateCache];
 }
