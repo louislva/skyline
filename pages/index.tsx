@@ -116,7 +116,7 @@ function TimelineScreen(props: {
 
   return (
     <div className="w-full flex flex-col items-center px-2">
-      <Header setLoginResponseData={setLoginResponseData} />
+      <Header logout={() => setLoginResponseData(null)} />
       <TimelinePicker
         timelineId={timelineId}
         setTimelineId={setTimelineId}
@@ -149,10 +149,8 @@ function TimelineScreen(props: {
   );
 }
 
-function Header(props: {
-  setLoginResponseData: (value: LoginResponseDataType | null) => void;
-}) {
-  const { setLoginResponseData } = props;
+function Header(props: { logout?: () => void }) {
+  const { logout } = props;
   const subheaders = [
     "it's a memorable domain! (and it was $5 off)",
     "better algorithms make better people",
@@ -183,13 +181,15 @@ function Header(props: {
           </div>
         </div>
         <div className="flex-1 flex flex-row justify-end items-center">
-          <button
-            className="text-base font-light text-white bg-slate-800 border border-slate-700 py-2 px-4 rounded-lg flex flex-row items-center mr-3"
-            onClick={() => setLoginResponseData(null)}
-          >
-            <span className="material-icons mr-2">logout</span>
-            Logout
-          </button>
+          {logout && (
+            <button
+              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700"
+              onClick={() => logout()}
+            >
+              <span className="material-icons mr-2">logout</span>
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </>
