@@ -3,6 +3,9 @@
 
 /* material icons */
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+.material-icons {
+  font-size: inherit;
+}
 
 /* tailwind */
 @tailwind base;
@@ -16,9 +19,6 @@
   -ms-user-select: none;
 }
 
-.material-icons {
-  font-size: inherit;
-}
 .lds-grid {
   display: inline-block;
   position: relative;
