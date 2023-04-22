@@ -7,8 +7,8 @@ import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
   TimelineDefinitionType,
+  makeBaseFeed,
   makeEmbeddingsFeed,
-  makeFollowingFeed,
   makeMutualsFeed,
   makeOneFromEachFeed,
 } from "@/helpers/makeFeeds";
@@ -41,23 +41,6 @@ type CustomTimelineType = {
 type CustomTimelinesType = {
   [id: string]: CustomTimelineType;
 };
-const TIMELINES: {
-  [id: string]: TimelineDefinitionType;
-} = {
-  following: makeFollowingFeed(),
-  "one-from-each": makeOneFromEachFeed(),
-  mutuals: makeMutualsFeed(),
-  wholesome: {
-    ...makeEmbeddingsFeed(
-      "Wholesome tweet, kindness, love, fun banter",
-      "Angry tweets, with politics, people talking about gender & dating, etc."
-    ),
-    icon: "favorite",
-    name: "Wholesome",
-    description:
-      "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
-  },
-};
 type TimelineIdType = string;
 
 // TIMELINE SCREEN
@@ -76,7 +59,63 @@ function TimelineScreen(props: {
     setCustomTimelines,
   } = props;
 
+  const [language, setLanguage] = useLocalStorageState<
+    "english" | "portuguese" | "farsi" | "japanese"
+  >("@language", "english");
+
   const timelines = useMemo(() => {
+    const languagesPositivePrompt = {
+      english: "thank you",
+      portuguese: "obrigado",
+      farsi: "با تشکر",
+      japanese: "ありがとう",
+    };
+    const languagePositivePrompt = languagesPositivePrompt[language];
+    const languageNegativePrompt = Object.entries(languagesPositivePrompt)
+      .filter(([k, _]) => k !== language)
+      .map(([_, v]) => v)
+      .join(", ");
+
+    const TIMELINES: TimelinesType = {
+      following: makeBaseFeed("following"),
+      // whatsHotGlobal: {
+      //   ...makeBaseFeed("popular"),
+      //   icon: "language",
+      //   name: "What's Hot (Global)",
+      // },
+      whatsHot: {
+        ...makeEmbeddingsFeed(
+          languagePositivePrompt,
+          languageNegativePrompt,
+          "popular",
+          "time"
+        ),
+        icon: "trending_up",
+        name: `What's Hot (${
+          {
+            english: "English",
+            portuguese: "Português",
+            farsi: "فارسی",
+            japanese: "日本語",
+          }[language]
+        })`,
+        description:
+          "What's Hot feed, filtered to show only your preferred language",
+      },
+      "one-from-each": makeOneFromEachFeed(),
+      mutuals: makeMutualsFeed(),
+      wholesome: {
+        ...makeEmbeddingsFeed(
+          "Wholesome tweet, kindness, love, fun banter",
+          "Angry tweets, with politics, people talking about gender & dating, etc."
+        ),
+        icon: "favorite",
+        name: "Wholesome",
+        description:
+          "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
+      },
+    };
+
     return {
       ...TIMELINES,
       ...Object.fromEntries(
@@ -101,7 +140,7 @@ function TimelineScreen(props: {
         })
       ),
     };
-  }, [customTimelines]);
+  }, [customTimelines, language]);
 
   const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
     "@timelineId",
@@ -127,9 +166,11 @@ function TimelineScreen(props: {
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
         customTimelines={customTimelines}
         setCustomTimelines={setCustomTimelines}
+        language={language}
+        setLanguage={setLanguage}
       />
       <Timeline
-        key={timelineId}
+        key={timelineId + "--" + language}
         timelineId={timelineId}
         agent={agent}
         egoIdentifier={egoIdentifier}
@@ -203,7 +244,11 @@ function TimelinePicker(props: {
   customTimelines: CustomTimelinesType;
   setCustomTimelines: (value: CustomTimelinesType) => void;
   egoIdentifier: string;
-  timelines: typeof TIMELINES;
+  timelines: TimelinesType;
+  language: "english" | "portuguese" | "farsi" | "japanese";
+  setLanguage: (
+    language: "english" | "portuguese" | "farsi" | "japanese"
+  ) => void;
   setCreateTimelineModalOpen: (open: boolean) => void;
   setEditingCustomAITimelineId: (id: string | null) => void;
 }) {
@@ -216,6 +261,8 @@ function TimelinePicker(props: {
     timelines,
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
+    language,
+    setLanguage,
   } = props;
   const [hoveredTimelineId, setHoveredTimelineId] =
     useState<TimelineIdType | null>(null);
@@ -274,7 +321,26 @@ function TimelinePicker(props: {
       </div>
       {(!hoveredTimelineId || hoveredTimelineId === timelineId) && (
         <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
-          {!Object.keys(TIMELINES).includes(timelineId) && (
+          {timelineId === "whatsHot" && (
+            <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-0 text-center pr-2">
+              {["english", "farsi"].map((lang, index) => (
+                <div
+                  className={
+                    "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
+                    (lang.toLowerCase() === language
+                      ? "text-white underline"
+                      : "") +
+                    (index === 0 ? "" : " border-l")
+                  }
+                  key={index}
+                  onClick={() => setLanguage(lang as "english" | "farsi")}
+                >
+                  {lang}
+                </div>
+              ))}
+            </div>
+          )}
+          {Object.keys(customTimelines).includes(timelineId) && (
             <>
               <ShareTimelineButton
                 key={timelineId}
@@ -669,6 +735,7 @@ function Post(props: {
                   settings
                 </div>
                 <div className="text-gray-400">
+                  {/* {(post.score * 100).toFixed(2)} */}
                   {(
                     Math.pow(Math.abs(post.score), 0.3) *
                     Math.sign(post.score) *

@@ -78,15 +78,22 @@ export function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
     postProcessFeed: defaultPostProcessFeed,
   };
 }
-export function makeFollowingFeed(): TimelineDefinitionType {
+export function makeBaseFeed(
+  baseFeed: "following" | "popular" = "following"
+): TimelineDefinitionType {
   return {
     icon: "person_add",
     name: "Following",
     description: "Posts from people you follow, in reverse chronological order",
     produceFeed: async ({ agent, cursor }) => {
-      const response = await agent.getTimeline({
-        cursor,
-      });
+      const response =
+        baseFeed === "following"
+          ? await agent.getTimeline({
+              cursor,
+            })
+          : await agent.api.app.bsky.unspecced.getPopular({
+              cursor,
+            });
       if (response.success) {
         return {
           posts: response.data.feed.map((item) => ({
@@ -202,17 +209,27 @@ function markdownQuote(text: string): string {
 }
 export function makeEmbeddingsFeed(
   positivePrompt: string | null,
-  negativePrompt: string | null
+  negativePrompt: string | null,
+  baseFeed: "following" | "popular" = "following",
+  sorting: "score" | "time" | "combo" = "combo",
+  minimumScore: number = 0
 ): TimelineDefinitionType {
   return {
     icon: "trending_up",
     name: "AI feed",
     description: `Posts like "${positivePrompt}" and unlike "${negativePrompt}"`,
     produceFeed: async ({ agent, cursor }) => {
-      const response = await agent.getTimeline({
-        cursor,
-        limit: 100,
-      });
+      const response =
+        baseFeed === "following"
+          ? await agent.getTimeline({
+              cursor,
+              limit: 100,
+            })
+          : await agent.api.app.bsky.unspecced.getPopular({
+              cursor,
+              limit: 100,
+            });
+
       if (response.success) {
         const posts = response.data.feed.map((item) => ({
           postView: item.post as ExpandedPostView,
@@ -316,8 +333,27 @@ export function makeEmbeddingsFeed(
 
         return {
           posts: postsWithSimilarity
-            .filter((item) => item.score > 0)
-            .sort((a, b) => b.score - a.score),
+            .filter((item) => item.score > minimumScore)
+            .sort((a, b) => {
+              const bAgo =
+                Date.now() - new Date(b.postView.record.createdAt).getTime();
+              const aAgo =
+                Date.now() - new Date(a.postView.record.createdAt).getTime();
+
+              if (sorting === "score") return b.score - a.score;
+              if (sorting === "time") return aAgo - bAgo;
+
+              if (sorting === "combo") {
+                // 0 = sort by time, 50 ~= sort by score, 5 ~= sort by combo
+                const SCORE_SENSITIVITY = 5;
+                return (
+                  aAgo / Math.pow(a.score, SCORE_SENSITIVITY) -
+                  bAgo / Math.pow(b.score, SCORE_SENSITIVITY)
+                );
+              }
+
+              return 0;
+            }),
           cursor: response.data.cursor,
         };
       } else {
