@@ -132,7 +132,7 @@ function TimelineScreen(props: {
         key={timelineId}
         timelineId={timelineId}
         agent={agent}
-        identifier={egoIdentifier}
+        egoIdentifier={egoIdentifier}
         timelines={timelines}
       />
       {(createTimelineModal || editingCustomAITimelineId) && (
@@ -396,11 +396,11 @@ function ShareTimelineButton(props: {
 
 function Timeline(props: {
   agent: BskyAgent;
-  identifier: string;
+  egoIdentifier: string;
   timelineId: TimelineIdType;
   timelines: TimelinesType;
 }) {
-  const { agent, identifier, timelineId, timelines } = props;
+  const { agent, egoIdentifier, timelineId, timelines } = props;
 
   const [posts, setPosts] = useState<SkylinePostType[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -414,15 +414,22 @@ function Timeline(props: {
     timelines[timelineId]
       .produceFeed({
         agent,
-        egoIdentifier: identifier,
+        egoIdentifier,
         cursor,
       })
       .then(async (result) => {
         const postsSliced = result.posts;
-        mergeConversationsContinual(agent, postsSliced, (postsMerged) => {
-          setPosts(postsMerged);
-          setLoading(false);
-        });
+        timelines[timelineId].postProcessFeed(
+          {
+            agent,
+            egoIdentifier,
+            posts: postsSliced,
+          },
+          (postsMerged) => {
+            setPosts(postsMerged);
+            setLoading(false);
+          }
+        );
       })
       .catch((err) => {
         console.error(err);

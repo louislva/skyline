@@ -5,6 +5,7 @@ import {
   getFollows,
   getMutuals,
   getThreadCacheOnly,
+  mergeConversationsContinual,
   unrollThread,
 } from "./bsky";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
@@ -22,6 +23,23 @@ export type TimelineDefinitionType = {
     posts: SkylinePostType[];
     cursor: string | undefined;
   }>;
+  postProcessFeed: (
+    params: {
+      agent: BskyAgent;
+      egoIdentifier: string;
+      posts: SkylinePostType[];
+    },
+    setPostsCallback: (posts: SkylinePostType[]) => void
+  ) => void;
+};
+
+const defaultPostProcessFeed: TimelineDefinitionType["postProcessFeed"] = (
+  { agent, egoIdentifier, posts },
+  callback
+) => {
+  mergeConversationsContinual(agent, posts, (postsMerged) => {
+    callback(postsMerged);
+  });
 };
 
 export function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
@@ -57,6 +75,7 @@ export function makeSinglePersonFeed(handle: string): TimelineDefinitionType {
         throw new Error("Failed to get timeline");
       }
     },
+    postProcessFeed: defaultPostProcessFeed,
   };
 }
 export function makeFollowingFeed(): TimelineDefinitionType {
@@ -83,6 +102,7 @@ export function makeFollowingFeed(): TimelineDefinitionType {
         throw new Error("Failed to get timeline");
       }
     },
+    postProcessFeed: defaultPostProcessFeed,
   };
 }
 export function makeOneFromEachFeed(): TimelineDefinitionType {
@@ -139,6 +159,7 @@ export function makeOneFromEachFeed(): TimelineDefinitionType {
           .map((post) => ({ postView: post } as SkylinePostType)),
       };
     },
+    postProcessFeed: defaultPostProcessFeed,
   };
 }
 export function makeMutualsFeed(): TimelineDefinitionType {
@@ -173,6 +194,7 @@ export function makeMutualsFeed(): TimelineDefinitionType {
         throw new Error("Failed to get timeline");
       }
     },
+    postProcessFeed: defaultPostProcessFeed,
   };
 }
 function markdownQuote(text: string): string {
@@ -302,5 +324,6 @@ export function makeEmbeddingsFeed(
         throw new Error("Failed to get timeline");
       }
     },
+    postProcessFeed: defaultPostProcessFeed,
   };
 }
