@@ -91,6 +91,29 @@ async function getThread(agent: BskyAgent, uri: string) {
   if (response.success) threadCache.set(uri, response);
   return response;
 }
+export function getThreadCacheOnly(uri: string): GetPostThreadResponse | null {
+  return threadCache.get(uri) || null;
+}
+export function unrollThread(response: GetPostThreadResponse) {
+  let newPosts: SkylinePostType[] = [];
+  try {
+    if (response.success) {
+      let node: ThreadViewPost | null = response.data.thread.post
+        ? (response.data.thread as ThreadViewPost)
+        : null;
+      while (node) {
+        newPosts.unshift({
+          postView: node.post as ExpandedPostView,
+        });
+        node = node.parent?.post ? (node.parent as ThreadViewPost) : null;
+      }
+    }
+  } catch (error) {
+    console.error("Error unrolling thread");
+  }
+
+  return newPosts;
+}
 export async function mergeConversationsContinual(
   agent: BskyAgent,
   allPosts_: SkylinePostType[],
@@ -111,27 +134,13 @@ export async function mergeConversationsContinual(
         const record = post.postView.record as RecordType;
         if (record.reply) {
           // Make sure the parent post is in the list
-          let newPosts = [];
+          let newPosts: SkylinePostType[] = [];
           try {
             const response = await getThread(agent, record.reply.parent.uri);
-
-            if (response.success) {
-              let node: ThreadViewPost | null = response.data.thread.post
-                ? (response.data.thread as ThreadViewPost)
-                : null;
-              while (node) {
-                newPosts.unshift({
-                  postView: node.post as ExpandedPostView,
-                });
-                node = node.parent?.post
-                  ? (node.parent as ThreadViewPost)
-                  : null;
-              }
-            }
+            newPosts = unrollThread(response);
           } catch (error) {
             console.error("Error loading parent post");
           }
-
           post.replyingTo = newPosts;
         }
 

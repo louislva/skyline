@@ -1,7 +1,12 @@
 import { BskyAgent } from "@atproto/api";
 import { ExpandedPostView, SkylinePostType } from "./contentTypes";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-import { getFollows, getMutuals } from "./bsky";
+import {
+  getFollows,
+  getMutuals,
+  getThreadCacheOnly,
+  unrollThread,
+} from "./bsky";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 const cosineSimilarity = require("compute-cosine-similarity");
 
@@ -170,6 +175,9 @@ export function makeMutualsFeed(): TimelineDefinitionType {
     },
   };
 }
+function markdownQuote(text: string): string {
+  return "> " + text.replace(/\n/g, "\n> ");
+}
 export function makeEmbeddingsFeed(
   positivePrompt: string | null,
   negativePrompt: string | null
@@ -200,30 +208,65 @@ export function makeEmbeddingsFeed(
           body: JSON.stringify({
             text: posts
               .map((post) => {
-                const embed = post.postView.embed;
-                // @ts-ignore
-                const quote = embed?.record?.value?.text
-                  ? // @ts-ignore
-                    `${embed?.record?.author?.displayName} (@${
-                      // @ts-ignore
-                      embed?.record?.author?.handle
-                      // @ts-ignore
-                    }) says:\n\n${embed?.record?.value?.text?.trim()}`
-                  : "";
-                const text = `${post.postView.author.displayName} (@${
-                  post.postView.author.handle
-                }) says:\n\n${post.postView.record.text.trim()}${
-                  quote
-                    ? "\n" +
-                      quote
-                        .split("\n")
-                        .map((line) => `\n> ${line}`)
-                        .join("")
-                    : ""
-                }`;
-                return text;
+                // Compile every post we can foresee will be rendered in the feed
+                let thread: SkylinePostType[] = [];
+                if (post.postView.record.reply?.parent?.uri) {
+                  const parent = getThreadCacheOnly(
+                    post.postView.record.reply.parent.uri
+                  );
+                  if (parent) {
+                    thread = unrollThread(parent);
+                  }
+                }
+                thread.push(post);
+                // Technically we'll only render the first and last two, so maybe we should filter as such
+                // Otoh, it's good to have the whole thread for context, when classifying it
+
+                // Then, take them and put them into text-only format
+                const textThread = thread
+                  .map((item, index) => {
+                    const introduction =
+                      index === 0
+                        ? `${post.postView.author.displayName} (@${post.postView.author.handle}) says:\n`
+                        : `${post.postView.author.displayName} (@${post.postView.author.handle}) replies:\n`;
+
+                    const text = "" + (item.postView.record.text || "").trim();
+                    // @ts-expect-error
+                    const quotePost = item.postView.embed?.record?.value?.text
+                      ? `Quote post from ${
+                          // @ts-expect-error
+                          item.postView.embed?.record?.author?.displayName
+                        } (@${
+                          // @ts-expect-error
+                          item.postView.embed?.record?.author?.handle
+                        }):\n` +
+                        markdownQuote(
+                          // @ts-expect-error
+                          item.postView.embed.record.value.text.trim()
+                        )
+                      : "";
+                    const image = !!item.postView.record.embed?.images?.length
+                      ? `[${item.postView.record.embed.images.length} ${
+                          item.postView.record.embed.images.length === 1
+                            ? "image"
+                            : "images"
+                        } attached]`
+                      : "";
+
+                    const components = [text, quotePost, image]
+                      .filter((component) => component)
+                      .join("\n\n");
+
+                    return introduction + markdownQuote(components);
+                  })
+                  .join("\n\n---\n\n");
+
+                return textThread;
               })
-              .concat([positivePrompt || "says", negativePrompt || "says"]),
+              .concat([
+                positivePrompt || "says", // we use "says" as the default / neutral prompt, because it will always be there in the text
+                negativePrompt || "says", // it might be worth trying other default neutral prompts, like "the" or "a"
+              ]),
           }),
         });
         if (!embeddingsResponse.ok) throw new Error("Failed to do AI!!");
