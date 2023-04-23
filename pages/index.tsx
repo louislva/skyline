@@ -571,6 +571,12 @@ function Post(props: {
 
   const replyPosts: SkylinePostType[] = post.replyingTo || [];
 
+  const [isLiked, setIsLiked] = useState<boolean>(!!post.postView.viewer?.like);
+  const [likeUri, setLikeUri] = useState<string | null>(
+    post.postView.viewer?.like || null
+  );
+  const likeDiff = (isLiked ? 1 : 0) - (post.postView.viewer?.like ? 1 : 0);
+
   return (
     <>
       {replyPosts.slice(0, 1).map((reply) => (
@@ -719,8 +725,40 @@ function Post(props: {
             <div className="mr-4">{post.postView.replyCount}</div>
             <div className="material-icons mr-1">repeat</div>
             <div className="mr-4">{post.postView.repostCount}</div>
-            <div className="material-icons mr-1">favorite_border</div>
-            <div className="mr-4">{post.postView.likeCount}</div>
+            <div className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
+              <div
+                className={
+                  "material-icons " +
+                  (isLiked
+                    ? "text-red-500"
+                    : "text-slate-700 dark:text-slate-300")
+                }
+                style={{
+                  paddingRight: 0.66 / 16 + "rem",
+                }}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setIsLiked(!isLiked);
+                  if (!isLiked) {
+                    const { uri } = await agent.like(
+                      post.postView.uri,
+                      post.postView.cid
+                    );
+                    setLikeUri(uri);
+                  } else {
+                    if (likeUri) {
+                      agent.deleteLike(likeUri);
+                    }
+                    setLikeUri(null);
+                  }
+                }}
+              >
+                {isLiked ? "favorite" : "favorite_border"}
+              </div>
+            </div>
+            <div className="mr-4">
+              {(post.postView.likeCount || 0) + likeDiff}
+            </div>
             {post.score && (
               <>
                 {/* cog icon / settings icon bec it's a machine */}
