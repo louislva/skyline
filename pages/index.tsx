@@ -328,7 +328,7 @@ function TimelinePicker(props: {
                   className={
                     "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
                     (lang.toLowerCase() === language
-                      ? "text-white underline"
+                      ? "font-bold dark:font-normal dark:text-slate-50 underline"
                       : "") +
                     (index === 0 ? "" : " border-l")
                   }
