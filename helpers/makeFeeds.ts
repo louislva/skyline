@@ -9,6 +9,7 @@ import {
   unrollThread,
 } from "./bsky";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import classifyLanguage, { LanguageType } from "./classifyLanguage";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 export type TimelineDefinitionType = {
@@ -112,6 +113,49 @@ export function makeBaseFeed(
     postProcessFeed: defaultPostProcessFeed,
   };
 }
+export function makeLanguageFeed(
+  baseFeed: "following" | "popular" = "following",
+  preferredLanguage: LanguageType
+): TimelineDefinitionType {
+  return {
+    icon: "person_add",
+    name: "Language (" + preferredLanguage + ")",
+    description: "Posts from What's Hot in your language",
+    produceFeed: async ({ agent, cursor }) => {
+      const response =
+        baseFeed === "following"
+          ? await agent.getTimeline({
+              cursor,
+            })
+          : await agent.api.app.bsky.unspecced.getPopular({
+              cursor,
+            });
+      if (response.success) {
+        return {
+          posts: response.data.feed
+            .map((item) => ({
+              postView: item.post as ExpandedPostView,
+              repostBy:
+                item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
+                  ? (item.reason.by as ProfileView)
+                  : undefined,
+            }))
+            .filter((item) => {
+              const text = item.postView.record.text;
+              const language = classifyLanguage(text);
+
+              return language === preferredLanguage;
+            }),
+          cursor: response.data.cursor,
+        };
+      } else {
+        throw new Error("Failed to get timeline");
+      }
+    },
+    postProcessFeed: defaultPostProcessFeed,
+  };
+}
+
 export function makeOneFromEachFeed(): TimelineDefinitionType {
   return {
     icon: "casino",

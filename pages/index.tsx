@@ -3,12 +3,14 @@ import {
   LoginResponseDataType,
   mergeConversationsContinual,
 } from "@/helpers/bsky";
+import { LanguageType } from "@/helpers/classifyLanguage";
 import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
   TimelineDefinitionType,
   makeBaseFeed,
   makeEmbeddingsFeed,
+  makeLanguageFeed,
   makeMutualsFeed,
   makeOneFromEachFeed,
 } from "@/helpers/makeFeeds";
@@ -59,9 +61,10 @@ function TimelineScreen(props: {
     setCustomTimelines,
   } = props;
 
-  const [language, setLanguage] = useLocalStorageState<
-    "english" | "portuguese" | "farsi" | "japanese"
-  >("@language", "english");
+  const [language, setLanguage] = useLocalStorageState<LanguageType>(
+    "@language",
+    "english"
+  );
 
   const timelines = useMemo(() => {
     const languagesPositivePrompt = {
@@ -78,18 +81,8 @@ function TimelineScreen(props: {
 
     const TIMELINES: TimelinesType = {
       following: makeBaseFeed("following"),
-      // whatsHotGlobal: {
-      //   ...makeBaseFeed("popular"),
-      //   icon: "language",
-      //   name: "What's Hot (Global)",
-      // },
       whatsHot: {
-        ...makeEmbeddingsFeed(
-          languagePositivePrompt,
-          languageNegativePrompt,
-          "popular",
-          "time"
-        ),
+        ...makeLanguageFeed("popular", language),
         icon: "trending_up",
         name: `What's Hot (${
           {
@@ -245,10 +238,8 @@ function TimelinePicker(props: {
   setCustomTimelines: (value: CustomTimelinesType) => void;
   egoIdentifier: string;
   timelines: TimelinesType;
-  language: "english" | "portuguese" | "farsi" | "japanese";
-  setLanguage: (
-    language: "english" | "portuguese" | "farsi" | "japanese"
-  ) => void;
+  language: LanguageType;
+  setLanguage: (language: LanguageType) => void;
   setCreateTimelineModalOpen: (open: boolean) => void;
   setEditingCustomAITimelineId: (id: string | null) => void;
 }) {
@@ -323,21 +314,23 @@ function TimelinePicker(props: {
         <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
           {timelineId === "whatsHot" && (
             <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-0 text-center pr-2">
-              {["english", "farsi"].map((lang, index) => (
-                <div
-                  className={
-                    "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
-                    (lang.toLowerCase() === language
-                      ? "font-bold dark:font-normal dark:text-slate-50 underline"
-                      : "") +
-                    (index === 0 ? "" : " border-l")
-                  }
-                  key={index}
-                  onClick={() => setLanguage(lang as "english" | "farsi")}
-                >
-                  {lang}
-                </div>
-              ))}
+              {["english", "portuguese", "japanese", "farsi"].map(
+                (lang, index) => (
+                  <div
+                    className={
+                      "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
+                      (lang.toLowerCase() === language
+                        ? "font-bold dark:font-normal dark:text-slate-50 underline"
+                        : "") +
+                      (index === 0 ? "" : " border-l")
+                    }
+                    key={index}
+                    onClick={() => setLanguage(lang as LanguageType)}
+                  >
+                    {lang}
+                  </div>
+                )
+              )}
             </div>
           )}
           {Object.keys(customTimelines).includes(timelineId) && (
