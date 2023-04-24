@@ -524,12 +524,12 @@ function Timeline(props: {
           <div className="text-lg mt-2 text-center">
             Try following some more accounts! We wholeheartedly recommend:{" "}
             <a
-              href="https://staging.bsky.app/profile/louis02x.bsky.social"
+              href="https://staging.bsky.app/profile/louis02x.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-700 dark:text-blue-400"
             >
-              louis02x.bsky.social
+              @louis02x.com
             </a>{" "}
             (it's me lol)
           </div>
