@@ -577,6 +577,15 @@ function Post(props: {
   );
   const likeDiff = (isLiked ? 1 : 0) - (post.postView.viewer?.like ? 1 : 0);
 
+  const [isReposted, setIsReposted] = useState<boolean>(
+    !!post.postView.viewer?.repost
+  );
+  const [repostUri, setRepostUri] = useState<string | null>(
+    post.postView.viewer?.repost || null
+  );
+  const repostDiff =
+    (isReposted ? 1 : 0) - (post.postView.viewer?.repost ? 1 : 0);
+
   return (
     <>
       {replyPosts.slice(0, 1).map((reply) => (
@@ -723,8 +732,40 @@ function Post(props: {
           <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
             <div className="material-icons mr-1">chat_bubble_outline</div>
             <div className="mr-4">{post.postView.replyCount}</div>
-            <div className="material-icons mr-1">repeat</div>
-            <div className="mr-4">{post.postView.repostCount}</div>
+            <div className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
+              <div
+                className={
+                  "material-icons " +
+                  (isReposted
+                    ? "text-green-500"
+                    : "text-slate-700 dark:text-slate-300")
+                }
+                style={{
+                  paddingRight: 0.66 / 16 + "rem",
+                }}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setIsReposted(!isReposted);
+                  if (!isReposted) {
+                    const { uri } = await agent.repost(
+                      post.postView.uri,
+                      post.postView.cid
+                    );
+                    setRepostUri(uri);
+                  } else {
+                    if (repostUri) {
+                      agent.deleteRepost(repostUri);
+                    }
+                    setRepostUri(null);
+                  }
+                }}
+              >
+                repeat
+              </div>
+            </div>
+            <div className="mr-4">
+              {(post.postView.repostCount || 0) + repostDiff}
+            </div>
             <div className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
               <div
                 className={
