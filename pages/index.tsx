@@ -462,7 +462,11 @@ function Timeline(props: {
 }) {
   const { agent, egoIdentifier, timelineId, timelines } = props;
 
-  const [loadedSegments, setLoadedSegments] = useState<ProduceFeedOutput[]>([]);
+  const [loadedSegments, setLoadedSegments] = useState<
+    (ProduceFeedOutput & {
+      loadTimestamp: number;
+    })[]
+  >([]);
   // const [posts, setPosts] = useState<SkylinePostType[]>([]);
   const posts = useMemo(
     () => loadedSegments.flatMap((segment) => segment.posts),
@@ -471,21 +475,34 @@ function Timeline(props: {
   const cursor = loadedSegments.slice(-1)?.[0]?.cursor;
   const [loading, setLoading] = useState<boolean>(false);
 
-  const loadNextSegment = async () => {
+  const loadSegment = async (direction: "down" | "up" = "down") => {
     timelines[timelineId]
       .produceFeed({
         agent,
         egoIdentifier,
-        cursor,
+        cursor: direction === "down" ? cursor : undefined,
       })
       .then(async (result) => {
-        setLoadedSegments((oldLoadedSegments) => [
-          ...oldLoadedSegments,
-          {
-            posts: [],
-            cursor: result.cursor,
-          },
-        ]);
+        const loadTimestamp = Date.now();
+        if (direction === "up") {
+          setLoadedSegments((oldLoadedSegments) => [
+            {
+              loadTimestamp,
+              posts: [],
+              cursor: result.cursor,
+            },
+            ...oldLoadedSegments,
+          ]);
+        } else {
+          setLoadedSegments((oldLoadedSegments) => [
+            ...oldLoadedSegments,
+            {
+              loadTimestamp,
+              posts: [],
+              cursor: result.cursor,
+            },
+          ]);
+        }
 
         const postsSliced = result.posts;
         timelines[timelineId].postProcessFeed(
@@ -495,17 +512,29 @@ function Timeline(props: {
             posts: postsSliced,
           },
           (postsMerged) => {
-            setLoadedSegments((oldLoadedSegments) =>
-              oldLoadedSegments.map((oldLoadedSegment, index) =>
-                oldLoadedSegment.cursor === result.cursor
+            setLoadedSegments((oldLoadedSegments) => {
+              const olderPostCids = oldLoadedSegments
+                .filter(
+                  (oldLoadedSegment) =>
+                    oldLoadedSegment.loadTimestamp !== loadTimestamp
+                )
+                .flatMap((oldLoadedSegment) =>
+                  oldLoadedSegment.posts.map((post) => post.postView.cid)
+                );
+
+              const postsMergedAndDeduplicated = postsMerged.filter(
+                (post) => !olderPostCids.includes(post.postView.cid)
+              );
+
+              return oldLoadedSegments.map((oldLoadedSegment, index) =>
+                oldLoadedSegment.loadTimestamp === loadTimestamp
                   ? {
                       ...oldLoadedSegment,
-                      posts: postsMerged,
-                      cursor: result.cursor,
+                      posts: postsMergedAndDeduplicated,
                     }
                   : oldLoadedSegment
-              )
-            );
+              );
+            });
             setLoading(false);
           }
         );
@@ -520,13 +549,47 @@ function Timeline(props: {
     setLoadedSegments([]);
     setLoading(true);
 
-    loadNextSegment();
+    loadSegment();
   }, [timelineId]);
+
+  const [now, setNow] = useState<number>(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000 * 10);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="border-2 w-full sm:w-136 border-gray-300 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl mb-8 overflow-hidden">
       {posts.length > 0 ? (
         <>
+          {now - loadedSegments?.[0]?.loadTimestamp > 60000 ? (
+            <button
+              className={
+                "w-full h-12 bg-slate-700 text-base flex flex-row items-center justify-center unselectable " +
+                (loading ? "text-slate-300" : "text-slate-50")
+              }
+              onClick={() => {
+                if (!loading) {
+                  setLoading(true);
+                  loadSegment("up");
+                }
+              }}
+            >
+              {loading ? (
+                <LoadingSpinner
+                  containerClassName="w-6 h-6 mr-2"
+                  dotClassName="bg-slate-800 dark:bg-slate-400"
+                />
+              ) : (
+                <span className="material-icons text-2xl mr-2">
+                  arrow_upward
+                </span>
+              )}
+              Refresh feed
+            </button>
+          ) : null}
           {posts.map((post, index) => (
             <Post
               agent={agent}
@@ -543,7 +606,7 @@ function Timeline(props: {
             onClick={() => {
               if (!loading) {
                 setLoading(true);
-                loadNextSegment();
+                loadSegment();
               }
             }}
           >
