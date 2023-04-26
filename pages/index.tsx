@@ -7,6 +7,7 @@ import { LanguageType } from "@/helpers/classifyLanguage";
 import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
+  ProduceFeedOutput,
   TimelineDefinitionType,
   makeBaseFeed,
   makeEmbeddingsFeed,
@@ -461,15 +462,16 @@ function Timeline(props: {
 }) {
   const { agent, egoIdentifier, timelineId, timelines } = props;
 
-  const [posts, setPosts] = useState<SkylinePostType[]>([]);
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [loadedSegments, setLoadedSegments] = useState<ProduceFeedOutput[]>([]);
+  // const [posts, setPosts] = useState<SkylinePostType[]>([]);
+  const posts = useMemo(
+    () => loadedSegments.flatMap((segment) => segment.posts),
+    [loadedSegments]
+  );
+  const cursor = loadedSegments.slice(-1)?.[0]?.cursor;
   const [loading, setLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    setCursor(undefined);
-    setPosts([]);
-    setLoading(true);
-
+  const loadNextSegment = async () => {
     timelines[timelineId]
       .produceFeed({
         agent,
@@ -477,6 +479,14 @@ function Timeline(props: {
         cursor,
       })
       .then(async (result) => {
+        setLoadedSegments((oldLoadedSegments) => [
+          ...oldLoadedSegments,
+          {
+            posts: [],
+            cursor: result.cursor,
+          },
+        ]);
+
         const postsSliced = result.posts;
         timelines[timelineId].postProcessFeed(
           {
@@ -485,7 +495,17 @@ function Timeline(props: {
             posts: postsSliced,
           },
           (postsMerged) => {
-            setPosts(postsMerged);
+            setLoadedSegments((oldLoadedSegments) =>
+              oldLoadedSegments.map((oldLoadedSegment, index) =>
+                oldLoadedSegment.cursor === result.cursor
+                  ? {
+                      ...oldLoadedSegment,
+                      posts: postsMerged,
+                      cursor: result.cursor,
+                    }
+                  : oldLoadedSegment
+              )
+            );
             setLoading(false);
           }
         );
@@ -494,11 +514,51 @@ function Timeline(props: {
         console.error(err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    setLoadedSegments([]);
+    setLoading(true);
+
+    loadNextSegment();
   }, [timelineId]);
 
   return (
     <div className="border-2 w-full sm:w-136 border-gray-300 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl mb-8 overflow-hidden">
-      {loading ? (
+      {posts.length > 0 ? (
+        <>
+          {posts.map((post, index) => (
+            <Post
+              agent={agent}
+              key={post.postView.cid + "index" + index}
+              post={post}
+              isLastPost={index === posts.length - 1}
+            />
+          ))}
+          <button
+            className={
+              "w-full h-16 bg-slate-700 text-base flex flex-row items-center justify-center unselectable " +
+              (loading ? "text-slate-300" : "text-slate-50")
+            }
+            onClick={() => {
+              if (!loading) {
+                setLoading(true);
+                loadNextSegment();
+              }
+            }}
+          >
+            {loading ? (
+              <LoadingSpinner
+                containerClassName="w-6 h-6 mr-2"
+                dotClassName="bg-slate-800 dark:bg-slate-400"
+              />
+            ) : (
+              <span className="material-icons text-2xl mr-2">add</span>
+            )}
+            Load more
+          </button>
+        </>
+      ) : loading ? (
         <div className="flex flex-row justify-center items-center text-3xl py-32">
           <LoadingSpinner
             containerClassName="w-12 h-12 mr-4"
@@ -506,15 +566,6 @@ function Timeline(props: {
           />
           <div className="text-slate-800 dark:text-slate-400">Loading...</div>
         </div>
-      ) : posts.length > 0 ? (
-        posts.map((post, index) => (
-          <Post
-            agent={agent}
-            key={post.postView.cid + "index" + index}
-            post={post}
-            isLastPost={index === posts.length - 1}
-          />
-        ))
       ) : (
         <div className="flex flex-col justify-center items-center py-32 text-slate-800 dark:text-slate-400">
           <div className="material-icons text-4xl mb-2">

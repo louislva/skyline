@@ -12,6 +12,10 @@ import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
 const cosineSimilarity = require("compute-cosine-similarity");
 
+export type ProduceFeedOutput = {
+  posts: SkylinePostType[];
+  cursor: string | undefined;
+};
 export type TimelineDefinitionType = {
   icon: string;
   name: string;
@@ -20,10 +24,7 @@ export type TimelineDefinitionType = {
     agent: BskyAgent;
     egoIdentifier: string;
     cursor: string | undefined;
-  }) => Promise<{
-    posts: SkylinePostType[];
-    cursor: string | undefined;
-  }>;
+  }) => Promise<ProduceFeedOutput>;
   postProcessFeed: (
     params: {
       agent: BskyAgent;
