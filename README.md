@@ -40,11 +40,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Here is the to-do list I use to track progress - feel free to contribute!
 
-- [x] Project Management
+- [x] Project "Management"
   - [x] Share timelines
   - [x] Delete timelines
   - [x] Edit timelines
-- [ ] Project Smooth As Balls
+- [ ] Project "Smooth As Balls"
   - [x] Handle Retweets
   - [x] Cache threads to Local Storage
   - [x] Log out when session over
@@ -53,7 +53,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
     - [x] `getThreadQuickAndDirty()` which will do it's best to recover the thread from (1) cache and (2) already-loaded posts
   - [ ] Refresh token usage for infinite sessions
   - [ ] Info about App Passwords in Login Page
-- [ ] Project Better Feeds
+- [ ] Project "Better Feeds"
   - [x] Language-specific What's Hot
   - [x] Reddit-like scoring algo: recency \* quality, with a minimum threshold to appear
   - [x] <u>Infinite feeds - query with the next cursor</u>
@@ -65,11 +65,11 @@ Here is the to-do list I use to track progress - feel free to contribute!
     - [ ] Muted keywords
     - [ ] Sorting: Best / Combo / Recent
     - [ ] Show replies: Yes / All Followed / No
-- [ ] Project Nice
+- [x] Project "Nice"
   - [x] Sticky timeline selection
   - [x] Dark mode
   - [x] <u>Auto-refresh feed</u>
-- [ ] <u>Project Full Client</u>
+- [ ] <u>Project "Full Client"</u>
   - [x] Like tweets
   - [x] Repost tweets
   - [ ] Post top level
@@ -81,7 +81,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Notifications
   - [ ] Links in Tweets
   - [ ] Click images to see expanded
-- [ ] Project Search (We should have at least as advanced search as Twitter!)
-- [ ] Project Social Audio
+- [ ] Project "Search" (We should have at least as advanced search as Twitter!)
+- [ ] Project "Social Audio"
   - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
-- [ ] Project DMs
+- [ ] Project "DMs"
