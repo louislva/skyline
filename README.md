@@ -85,3 +85,12 @@ Here is the to-do list I use to track progress - feel free to contribute!
 - [ ] Project "Social Audio"
   - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
 - [ ] Project "DMs"
+- [ ] Project "Lists"
+  - [ ] Ability to use custom list as the baseFeed for a timeline
+  - [ ] Role Play: automatically create a new list from someone else's following
+  - [ ] Own followers list
+- [ ] Project "Marketplace"
+  - [ ] Get a notification when your timeline gets 20+ installs
+  - [ ] Timeline Library: a place that lists shared timelines, which you can then install
+- [ ] Project "Analytics"
+  - [ ] Keep stats on logins, usage time, feed %, created timelines, etc.
