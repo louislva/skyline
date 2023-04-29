@@ -12,6 +12,36 @@ import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
 const cosineSimilarity = require("compute-cosine-similarity");
 
+// INPUT:
+export type TimelineConfigType = {
+  meta: {
+    origin: "system" | "self" | "shared";
+    createdOn?: number;
+    modifiedOn?: number;
+    shared?: {
+      key?: string;
+      createdByHandle?: string;
+      createdByDid?: string;
+    };
+  };
+  identity: {
+    icon: string;
+    name: string;
+    description: string;
+  };
+  behaviour: {
+    baseFeed?: "following" | "popular" | "one-from-each";
+    mutualsOnly?: boolean;
+    language?: LanguageType;
+    replies?: "all" | "following" | "none";
+    positivePrompts?: string[];
+    negativePrompts?: string[];
+    sorting?: "score" | "time" | "combo";
+    minimumScore?: number;
+  };
+};
+
+// OUTPUT:
 export type ProduceFeedOutput = {
   posts: SkylinePostType[];
   cursor: string | undefined;
@@ -44,67 +74,62 @@ const defaultPostProcessFeed: TimelineDefinitionType["postProcessFeed"] = (
   });
 };
 
-export function makeOneFromEachFeed(): TimelineDefinitionType {
-  return {
-    icon: "casino",
-    name: "One from each",
-    description:
-      "Latest post from each person you follow, randomly ordered. Useful for keeping up with everyone.",
-    produceFeed: async ({ agent, egoIdentifier, cursor }) => {
-      const follows = await getFollows(agent, egoIdentifier);
-
-      let postsPerUser = await Promise.all(
-        follows.map((follow) =>
-          agent
-            .getAuthorFeed({
-              actor: follow.handle,
-              cursor,
-              limit: 9,
-            })
-            .then((response) => {
-              if (response.success) {
-                return response.data.feed
-                  .filter((item) => !item.reason && !item.reply)
-                  .map((item) => item.post);
-              } else {
-                return [];
-              }
-            })
-        )
-      );
-      let epochs: PostView[][] = [];
-
-      let run = true;
-      while (run) {
-        run = false;
-        epochs.push([]);
-        const epoch = epochs[epochs.length - 1];
-        // Get the newest post from each user
-        postsPerUser.forEach((userPosts) => {
-          if (userPosts.length > 0) {
-            epoch.push(userPosts.shift()!);
-            run = true;
-          }
-        });
-        // Shuffle the posts in the epoch
-        epoch.sort(() => Math.random() - 0.5);
-      }
-
-      return {
-        cursor: undefined,
-        posts: epochs
-          .slice(0, 3)
-          .flat()
-          .map((post) => ({ postView: post } as SkylinePostType)),
-      };
-    },
-    postProcessFeed: defaultPostProcessFeed,
-  };
-}
 function markdownQuote(text: string): string {
   return "> " + text.replace(/\n/g, "\n> ");
 }
 
+async function loadOneFromEachFeed(
+  agent: BskyAgent,
+  egoIdentifier: string,
+  cursor?: string | undefined
+): Promise<ProduceFeedOutput> {
+  const follows = await getFollows(agent, egoIdentifier);
+
+  let postsPerUser = await Promise.all(
+    follows.map((follow) =>
+      agent
+        .getAuthorFeed({
+          actor: follow.handle,
+          cursor,
+          limit: 15,
+        })
+        .then((response) => {
+          if (response.success) {
+            return response.data.feed
+              .filter((item) => !item.reason && !item.reply)
+              .map((item) => item.post);
+          } else {
+            return [];
+          }
+        })
+    )
+  );
+  let epochs: PostView[][] = [];
+
+  let run = true;
+  while (run) {
+    run = false;
+    epochs.push([]);
+    const epoch = epochs[epochs.length - 1];
+    // Get the newest post from each user
+    postsPerUser.forEach((userPosts) => {
+      if (userPosts.length > 0) {
+        epoch.push(userPosts.shift()!);
+        run = true;
+      }
+    });
+    // Shuffle the posts in the epoch
+    epoch.sort(() => Math.random() - 0.5);
+  }
+
+  return {
+    posts: epochs
+      .slice(0, 1)
+      .flat()
+      .map((post) => ({ postView: post } as SkylinePostType)),
+    cursor: undefined,
+  };
+}
 async function loadBaseFeed(
   baseFeed: "following" | "popular",
   agent: BskyAgent,
@@ -203,21 +228,8 @@ function max(array: number[]): number {
 
 const DEFAULT_PROMPT = ["says"];
 export function makePrincipledFeed(
-  identity: {
-    icon: string;
-    name: string;
-    description: string;
-  },
-  behaviour: {
-    baseFeed?: "following" | "popular";
-    mutualsOnly?: boolean;
-    language?: LanguageType;
-    replies?: "all" | "following" | "none";
-    positivePrompts?: string[];
-    negativePrompts?: string[];
-    sorting?: "score" | "time" | "combo";
-    minimumScore?: number;
-  }
+  identity: TimelineConfigType["identity"],
+  behaviour: TimelineConfigType["behaviour"]
 ): TimelineDefinitionType {
   const {
     baseFeed = "following",
@@ -241,11 +253,12 @@ export function makePrincipledFeed(
       if (mutualsOnly) mutualsPromise = getMutuals(agent, egoIdentifier);
 
       // Load base feed
-      let { posts, cursor: newCursor } = await loadBaseFeed(
-        baseFeed,
-        agent,
-        cursor
-      );
+
+      let { posts, cursor: newCursor } = ["following", "popular"].includes(
+        baseFeed
+      )
+        ? await loadBaseFeed(baseFeed as "following" | "popular", agent, cursor)
+        : await loadOneFromEachFeed(agent, egoIdentifier, cursor);
 
       // Load LLM scoring
       let positivePromptEmbeddings: number[][] = [];

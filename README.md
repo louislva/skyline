@@ -57,7 +57,8 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Language-specific What's Hot
   - [x] Reddit-like scoring algo: recency \* quality, with a minimum threshold to appear
   - [x] <u>Infinite feeds - query with the next cursor</u>
-  - [ ] Unify custom-timeline & built-in timeline concept
+  - [x] Unify custom-timeline & built-in timeline concept
+  - [ ] Control every parameter for a feed
   - [ ] Automatic infinite feeds - when you're 6 posts away from bottom, load more
   - [ ] Custom feed settings:
     - [ ] Base: What's Hot / Mutuals / Following

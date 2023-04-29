@@ -1,19 +1,30 @@
 import { getDB } from "@/helpers/db";
+import { TimelineConfigType } from "@/helpers/makeFeeds";
 const { db } = getDB();
 
 export default async function handler(req: any, res: any) {
   if (req.method === "POST") {
-    const { config, created_by_handle } = req.body;
+    const { config_new, created_by_handle } = req.body;
 
-    if (typeof config !== "object") return res.status(400).end();
+    if (typeof config_new !== "object") return res.status(400).end();
     if (typeof created_by_handle !== "string") return res.status(400).end();
     const key = `${Math.random().toString(36).substring(2, 7)}`;
 
     await db.one(
-      `INSERT INTO shared_custom_timeline (key, config, created_by_handle) VALUES ($/key/, $/config/, $/created_by_handle/) RETURNING *`,
+      `INSERT INTO shared_custom_timeline (key, config, config_new, created_by_handle) VALUES ($/key/, $/config/, $/config_new/, $/created_by_handle/) RETURNING *`,
       {
         key,
-        config,
+        config: null,
+        config_new: {
+          ...config_new,
+          meta: {
+            ...config_new.meta,
+            shared: {
+              createdByHandle: created_by_handle,
+              key: key,
+            },
+          },
+        } as TimelineConfigType,
         created_by_handle,
       }
     );
@@ -22,7 +33,7 @@ export default async function handler(req: any, res: any) {
     const key = req.query.key;
     if (typeof key !== "string") return res.status(400).end();
     const result = await db.one(
-      `SELECT config, created_by_handle FROM shared_custom_timeline WHERE key = $/key/`,
+      `SELECT config, config_new, created_by_handle FROM shared_custom_timeline WHERE key = $/key/`,
       {
         key,
       }

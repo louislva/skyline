@@ -1,15 +1,12 @@
 import LoadingSpinner from "@/components/LoadingSpinner";
-import {
-  LoginResponseDataType,
-  mergeConversationsContinual,
-} from "@/helpers/bsky";
+import { LoginResponseDataType } from "@/helpers/bsky";
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
   ProduceFeedOutput,
+  TimelineConfigType,
   TimelineDefinitionType,
-  makeOneFromEachFeed,
   makePrincipledFeed,
 } from "@/helpers/makeFeeds";
 import { BskyAgent } from "@atproto/api";
@@ -28,9 +25,19 @@ import {
   useState,
 } from "react";
 
+function promptsToDescription(positivePrompt: string, negativePrompt: string) {
+  return (positivePrompt.trim() && negativePrompt.trim()) ||
+    (!positivePrompt.trim() && !negativePrompt.trim())
+    ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
+    : negativePrompt.trim()
+    ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
+    : `Custom timeline, created to show more "${positivePrompt.trim()}"`;
+}
+
 // TIMELINES
-type TimelinesType = {
-  [id: string]: TimelineDefinitionType;
+type TimelineIdType = string;
+type TimelineDefinitionsType = {
+  [id: TimelineIdType]: TimelineDefinitionType;
 };
 type CustomAITimelineType = {
   name: string;
@@ -39,24 +46,131 @@ type CustomAITimelineType = {
   sharedBy?: string;
 };
 type CustomAITimelinesType = {
-  [id: string]: CustomAITimelineType;
+  [id: TimelineIdType]: CustomAITimelineType;
 };
-type TimelineIdType = string;
+type TimelineConfigsType = {
+  [id: string]: TimelineConfigType;
+};
+
+// CONST
+const getDefaultTimelineConfigs = (
+  language: LanguageType
+): TimelineConfigsType => ({
+  following: {
+    meta: {
+      origin: "system",
+    },
+    identity: {
+      icon: "person_add",
+      name: "Following",
+      description:
+        "Posts from people you follow, in reverse chronological order",
+    },
+    behaviour: {
+      baseFeed: "following",
+      mutualsOnly: false,
+      replies: "all",
+      sorting: "time",
+    },
+  },
+  whatsHot: {
+    meta: {
+      origin: "system",
+    },
+    identity: {
+      icon: "trending_up",
+      name: `What's Hot (${
+        {
+          english: "English",
+          portuguese: "Português",
+          farsi: "فارسی",
+          japanese: "日本語",
+        }[language]
+      })`,
+      description:
+        "What's Hot feed, filtered to show only your preferred language",
+    },
+    behaviour: {
+      baseFeed: "popular",
+      mutualsOnly: false,
+      replies: "all",
+      language: language,
+      sorting: "time",
+    },
+  },
+  "one-from-each": {
+    meta: {
+      origin: "system",
+    },
+    identity: {
+      icon: "casino",
+      name: "One from each",
+      description:
+        "Latest post from each person you follow, randomly ordered. Useful for keeping up with everyone.",
+    },
+    behaviour: {
+      baseFeed: "one-from-each",
+      mutualsOnly: false,
+      replies: "none",
+    },
+  },
+  mutuals: {
+    meta: {
+      origin: "system",
+    },
+    identity: {
+      icon: "people",
+      name: "Mutuals",
+      description: "Posts from your friends",
+    },
+    behaviour: {
+      baseFeed: "following",
+      mutualsOnly: true,
+      replies: "all",
+      sorting: "time",
+    },
+  },
+  wholesome: {
+    meta: {
+      origin: "system",
+    },
+    identity: {
+      icon: "favorite",
+      name: "Wholesome",
+      description:
+        "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
+    },
+    behaviour: {
+      baseFeed: "following",
+      mutualsOnly: false,
+      replies: "all",
+      positivePrompts: ["Wholesome tweet, kindness, love, fun banter"],
+      negativePrompts: [
+        "Angry tweets, with politics, people talking about gender & dating, etc.",
+      ],
+      sorting: "combo",
+    },
+  },
+});
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
   setLoginResponseData: (value: LoginResponseDataType | null) => void;
   egoIdentifier: string;
   agent: BskyAgent;
-  customTimelines: CustomAITimelinesType;
-  setCustomTimelines: (value: CustomAITimelinesType) => void;
+  timelineDefinitions: {
+    [id: string]: TimelineDefinitionType;
+  };
+  customTimelineConfigs: TimelineConfigsType;
+  setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
 }) {
   const {
     setLoginResponseData,
     egoIdentifier,
     agent,
-    customTimelines,
-    setCustomTimelines,
+    timelineDefinitions,
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
   } = props;
 
   const [language, setLanguage] = useLocalStorageState<LanguageType>(
@@ -65,116 +179,8 @@ function TimelineScreen(props: {
   );
 
   const timelines = useMemo(() => {
-    const TIMELINES: TimelinesType = {
-      following: makePrincipledFeed(
-        {
-          icon: "person_add",
-          name: "Following",
-          description:
-            "Posts from people you follow, in reverse chronological order",
-        },
-        {
-          baseFeed: "following",
-          mutualsOnly: false,
-          replies: "all",
-          sorting: "time",
-        }
-      ),
-      whatsHot: makePrincipledFeed(
-        {
-          icon: "trending_up",
-          name: `What's Hot (${
-            {
-              english: "English",
-              portuguese: "Português",
-              farsi: "فارسی",
-              japanese: "日本語",
-            }[language]
-          })`,
-          description:
-            "What's Hot feed, filtered to show only your preferred language",
-        },
-        {
-          baseFeed: "popular",
-          mutualsOnly: false,
-          replies: "all",
-          language,
-          sorting: "time",
-        }
-      ),
-      "one-from-each": makeOneFromEachFeed(),
-      mutuals: makePrincipledFeed(
-        {
-          icon: "people",
-          name: "Mutuals",
-          description: "Posts from your friends",
-        },
-        {
-          baseFeed: "following",
-          mutualsOnly: true,
-          replies: "all",
-          sorting: "time",
-        }
-      ),
-      wholesome: makePrincipledFeed(
-        {
-          icon: "favorite",
-          name: "Wholesome",
-          description:
-            "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
-        },
-        {
-          baseFeed: "following",
-          mutualsOnly: false,
-          replies: "all",
-          positivePrompts: ["Wholesome tweet, kindness, love, fun banter"],
-          negativePrompts: [
-            "Angry tweets, with politics, people talking about gender & dating, etc.",
-          ],
-          sorting: "combo",
-        }
-      ),
-    };
-
-    return {
-      ...TIMELINES,
-      ...Object.fromEntries(
-        Object.entries(customTimelines).map(([id, config]) => {
-          const { name, positivePrompt, negativePrompt, sharedBy } = config;
-          return [
-            id,
-            {
-              ...makePrincipledFeed(
-                {
-                  name: name,
-                  // a material icon that symbolizes "custom"
-                  icon: sharedBy ? "public" : "bolt",
-                  description:
-                    (positivePrompt.trim() && negativePrompt.trim()) ||
-                    (!positivePrompt.trim() && !negativePrompt.trim())
-                      ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
-                      : negativePrompt.trim()
-                      ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
-                      : `Custom timeline, created to show more "${positivePrompt.trim()}"`,
-                },
-                {
-                  baseFeed: "following",
-                  mutualsOnly: false,
-                  positivePrompts: positivePrompt.trim()
-                    ? [positivePrompt]
-                    : undefined,
-                  negativePrompts: negativePrompt.trim()
-                    ? [negativePrompt]
-                    : undefined,
-                  sorting: "combo",
-                }
-              ),
-            },
-          ] as [string, TimelineDefinitionType];
-        })
-      ),
-    };
-  }, [customTimelines, language]);
+    return timelineDefinitions;
+  }, [timelineDefinitions]);
 
   const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
     "@timelineId",
@@ -198,8 +204,8 @@ function TimelineScreen(props: {
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
-        customTimelines={customTimelines}
-        setCustomTimelines={setCustomTimelines}
+        customTimelineConfigs={customTimelineConfigs}
+        setCustomTimelineConfigs={setCustomTimelineConfigs}
         language={language}
         setLanguage={setLanguage}
       />
@@ -213,8 +219,8 @@ function TimelineScreen(props: {
       <TweetComposer agent={agent} />
       {(createTimelineModal || editingCustomAITimelineId) && (
         <ConfigureTimelineModal
-          customTimelines={customTimelines}
-          setCustomTimelines={setCustomTimelines}
+          customTimelineConfigs={customTimelineConfigs}
+          setCustomTimelineConfigs={setCustomTimelineConfigs}
           close={() => {
             setCreateTimelineModalOpen(false);
             setEditingCustomAITimelineId(null);
@@ -375,10 +381,10 @@ function Header(props: { logout?: () => void }) {
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
-  customTimelines: CustomAITimelinesType;
-  setCustomTimelines: (value: CustomAITimelinesType) => void;
+  customTimelineConfigs: TimelineConfigsType;
+  setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
   egoIdentifier: string;
-  timelines: TimelinesType;
+  timelines: TimelineDefinitionsType;
   language: LanguageType;
   setLanguage: (language: LanguageType) => void;
   setCreateTimelineModalOpen: (open: boolean) => void;
@@ -387,8 +393,8 @@ function TimelinePicker(props: {
   const {
     timelineId,
     setTimelineId,
-    customTimelines,
-    setCustomTimelines,
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
     egoIdentifier,
     timelines,
     setCreateTimelineModalOpen,
@@ -474,11 +480,11 @@ function TimelinePicker(props: {
               )}
             </div>
           )}
-          {Object.keys(customTimelines).includes(timelineId) && (
+          {!!customTimelineConfigs[timelineId] && (
             <>
               <ShareTimelineButton
                 key={timelineId}
-                timelineConfig={customTimelines[timelineId]}
+                timelineConfig={customTimelineConfigs[timelineId]}
                 egoIdentifier={egoIdentifier}
               />
               <button
@@ -496,14 +502,14 @@ function TimelinePicker(props: {
                   // are you sure alert?
                   if (
                     confirm(
-                      `Are you sure you want to delete "${customTimelines[timelineId].name}"?`
+                      `Are you sure you want to delete "${customTimelineConfigs[timelineId].identity.name}"?`
                     )
                   ) {
-                    const newCustomTimelines = {
-                      ...customTimelines,
+                    const newCustomTimelineConfigs = {
+                      ...customTimelineConfigs,
                     };
-                    delete newCustomTimelines[timelineId];
-                    setCustomTimelines(newCustomTimelines);
+                    delete newCustomTimelineConfigs[timelineId];
+                    setCustomTimelineConfigs(newCustomTimelineConfigs);
                     setTimelineId("following");
                   }
                 }}
@@ -519,7 +525,7 @@ function TimelinePicker(props: {
   );
 }
 function ShareTimelineButton(props: {
-  timelineConfig: CustomAITimelineType;
+  timelineConfig: TimelineConfigType;
   egoIdentifier: string;
 }) {
   const { timelineConfig, egoIdentifier } = props;
@@ -552,7 +558,7 @@ function ShareTimelineButton(props: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            config: timelineConfig,
+            config_new: timelineConfig,
             created_by_handle: egoIdentifier,
           }),
         })
@@ -598,7 +604,7 @@ function Timeline(props: {
   agent: BskyAgent;
   egoIdentifier: string;
   timelineId: TimelineIdType;
-  timelines: TimelinesType;
+  timelines: TimelineDefinitionsType;
 }) {
   const { agent, egoIdentifier, timelineId, timelines } = props;
 
@@ -1099,33 +1105,35 @@ function Modal(props: { children: ReactNode; close: () => void }) {
   );
 }
 function ConfigureTimelineModal(props: {
-  customTimelines: CustomAITimelinesType;
-  setCustomTimelines: (timelines: CustomAITimelinesType) => void;
+  customTimelineConfigs: TimelineConfigsType;
+  setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
   close: () => void;
   editingCustomAITimelineId: string | null;
 }) {
   const {
-    customTimelines,
-    setCustomTimelines,
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
     close,
     editingCustomAITimelineId,
   } = props;
   const editingCustomAITimeline = editingCustomAITimelineId
-    ? customTimelines[editingCustomAITimelineId]
+    ? customTimelineConfigs[editingCustomAITimelineId]
     : null;
-  const [name, setName] = useState(editingCustomAITimeline?.name || "");
+  const [name, setName] = useState(
+    editingCustomAITimeline?.identity?.name || ""
+  );
   const [positivePrompt, setPositivePrompt] = useState(
-    editingCustomAITimeline?.positivePrompt || ""
+    editingCustomAITimeline?.behaviour?.positivePrompts?.[0] || ""
   );
   const [negativePrompt, setNegativePrompt] = useState(
-    editingCustomAITimeline?.negativePrompt || ""
+    editingCustomAITimeline?.behaviour?.negativePrompts?.[0] || ""
   );
 
   return (
     <Modal close={close}>
       <div className="text-xl font-bold mb-4">
         {editingCustomAITimeline
-          ? `Edit "${editingCustomAITimeline.name}" timeline`
+          ? `Edit "${editingCustomAITimeline?.identity?.name}" timeline`
           : "Create a timeline"}
       </div>
       <div className="flex flex-col gap-2">
@@ -1162,12 +1170,33 @@ function ConfigureTimelineModal(props: {
         <button
           className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto outline-none"
           onClick={() => {
-            setCustomTimelines({
-              ...customTimelines,
+            setCustomTimelineConfigs({
+              ...customTimelineConfigs,
               [editingCustomAITimelineId || Date.now().toString()]: {
-                name: name.trim(),
-                positivePrompt: positivePrompt.trim(),
-                negativePrompt: negativePrompt.trim(),
+                meta: {
+                  origin: "self",
+                  createdOn: Date.now(),
+                  ...(editingCustomAITimeline?.meta || {}),
+                  modifiedOn: Date.now(),
+                },
+                identity: {
+                  ...(editingCustomAITimeline?.identity || {}),
+                  name: name.trim(),
+                  description: promptsToDescription(
+                    positivePrompt,
+                    negativePrompt
+                  ),
+                  icon: "bolt",
+                },
+                behaviour: {
+                  ...(editingCustomAITimeline?.behaviour || {}),
+                  positivePrompts: positivePrompt
+                    ? [positivePrompt.trim()]
+                    : undefined,
+                  negativePrompts: negativePrompt
+                    ? [negativePrompt.trim()]
+                    : undefined,
+                },
               },
             });
             close();
@@ -1304,6 +1333,62 @@ type AccessJwtType = {
   sub: string;
 };
 
+function convertOldCustomToNewConfig(
+  config: CustomAITimelineType,
+  id: string = ""
+): TimelineConfigType {
+  const { name, positivePrompt, negativePrompt, sharedBy } = config;
+  return {
+    meta: {
+      origin: sharedBy ? "shared" : "self",
+      createdOn: !isNaN(parseInt(id)) ? parseInt(id) : Date.now(),
+      modifiedOn: !isNaN(parseInt(id)) ? parseInt(id) : Date.now(),
+      shared: sharedBy
+        ? {
+            createdByHandle: sharedBy,
+          }
+        : undefined,
+    },
+    identity: {
+      name: name,
+      // a material icon that symbolizes "custom"
+      icon: sharedBy ? "public" : "bolt",
+      description: promptsToDescription(positivePrompt, negativePrompt),
+    },
+    behaviour: {
+      baseFeed: "following",
+      mutualsOnly: false,
+      positivePrompts: positivePrompt.trim() ? [positivePrompt] : undefined,
+      negativePrompts: negativePrompt.trim() ? [negativePrompt] : undefined,
+      sorting: "combo",
+    },
+  };
+}
+function useMigrateOldCustomTimelines(
+  customTimelineConfigs: TimelineConfigsType,
+  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void
+) {
+  // Migrate old custom timeline system to new system
+  const [customAITimelines, setCustomAITimelines] =
+    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  useEffect(() => {
+    if (Object.keys(customAITimelines).length > 0) {
+      setCustomAITimelines({});
+      setCustomTimelineConfigs({
+        ...customTimelineConfigs,
+        ...Object.fromEntries(
+          Object.entries(customAITimelines).map(([id, config]) => {
+            return [id, convertOldCustomToNewConfig(config)] as [
+              TimelineIdType,
+              TimelineConfigType
+            ];
+          })
+        ),
+      });
+    }
+  }, [customAITimelines]);
+}
+
 export default function Main() {
   // Bluesky API
   const agent = useRef<BskyAgent>(
@@ -1318,6 +1403,7 @@ export default function Main() {
       "@loginResponseData",
       null
     );
+  // TODO: rename
   const egoIdentifier = loginResponseData?.handle;
   const accessJwt = !!loginResponseData?.accessJwt
     ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
@@ -1354,8 +1440,24 @@ export default function Main() {
   }, []);
 
   // Custom Timelines Installed
-  const [customAITimelines, setCustomAITimelines] =
-    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
+  const language: LanguageType = "english";
+  const defaultTimelineConfigs = getDefaultTimelineConfigs(language);
+  const [customTimelineConfigs, setCustomTimelineConfigs] =
+    useLocalStorageState<TimelineConfigsType>("@customTimelineConfigs", {});
+  const timelineConfigs = {
+    ...defaultTimelineConfigs,
+    ...customTimelineConfigs,
+  };
+  const timelineDefinitions: {
+    [id: TimelineIdType]: TimelineDefinitionType;
+  } = Object.fromEntries(
+    Object.entries(timelineConfigs).map(([key, config]) => {
+      return [key, makePrincipledFeed(config["identity"], config["behaviour"])];
+    })
+  );
+
+  // Makes sure to migrate timelines from @customAITimelines into @customTimelineConfigs (if any)
+  useMigrateOldCustomTimelines(customTimelineConfigs, setCustomTimelineConfigs);
 
   const router = useRouter();
   useEffect(() => {
@@ -1363,19 +1465,37 @@ export default function Main() {
       fetch(`/api/shared_custom_timeline?key=${router.query.tl}`).then(
         (res) => {
           if (res.ok) {
-            res.json().then((json) => {
-              router.replace("/", undefined, {
-                scroll: false,
-                shallow: true,
-              });
-              setCustomAITimelines({
-                ...customAITimelines,
-                [Date.now().toString()]: {
-                  ...json.config,
-                  sharedBy: json.created_by_handle,
-                },
-              });
-            });
+            res.json().then(
+              (
+                json:
+                  | {
+                      config: CustomAITimelineType;
+                      config_new: null;
+                    }
+                  | {
+                      config: null;
+                      config_new: TimelineConfigType;
+                    }
+              ) => {
+                router.replace("/", undefined, {
+                  scroll: false,
+                  shallow: true,
+                });
+                const config = json.config_new
+                  ? json.config_new
+                  : convertOldCustomToNewConfig(json.config);
+                setCustomTimelineConfigs({
+                  ...customTimelineConfigs,
+                  [Date.now().toString()]: {
+                    ...config,
+                    identity: {
+                      ...config.identity,
+                      icon: "public",
+                    },
+                  },
+                });
+              }
+            );
           } else {
             throw Error("Couldn't GET shared_ai_timeline: " + res.statusText);
           }
@@ -1396,8 +1516,9 @@ export default function Main() {
             setLoginResponseData={setLoginResponseData}
             egoIdentifier={egoIdentifier}
             agent={agent}
-            customTimelines={customAITimelines}
-            setCustomTimelines={setCustomAITimelines}
+            timelineDefinitions={timelineDefinitions}
+            customTimelineConfigs={customTimelineConfigs}
+            setCustomTimelineConfigs={setCustomTimelineConfigs}
           />
         ) : (
           <LoginScreen
