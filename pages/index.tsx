@@ -1318,7 +1318,7 @@ export default function Main() {
       "@loginResponseData",
       null
     );
-  const identifier = loginResponseData?.handle;
+  const egoIdentifier = loginResponseData?.handle;
   const accessJwt = !!loginResponseData?.accessJwt
     ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
     : null;
@@ -1391,10 +1391,10 @@ export default function Main() {
         <link rel="icon" href="/skyline-16.png" />
       </Head>
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100">
-        {identifier ? (
+        {egoIdentifier ? (
           <TimelineScreen
             setLoginResponseData={setLoginResponseData}
-            egoIdentifier={identifier}
+            egoIdentifier={egoIdentifier}
             agent={agent}
             customTimelines={customAITimelines}
             setCustomTimelines={setCustomAITimelines}
