@@ -9,11 +9,8 @@ import { useLocalStorageState } from "@/helpers/hooks";
 import {
   ProduceFeedOutput,
   TimelineDefinitionType,
-  makeBaseFeed,
-  makeEmbeddingsFeed,
-  makeLanguageFeed,
-  makeMutualsFeed,
   makeOneFromEachFeed,
+  makePrincipledFeed,
 } from "@/helpers/makeFeeds";
 import { BskyAgent } from "@atproto/api";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
@@ -81,33 +78,74 @@ function TimelineScreen(props: {
       .join(", ");
 
     const TIMELINES: TimelinesType = {
-      following: makeBaseFeed("following"),
-      whatsHot: {
-        ...makeLanguageFeed("popular", language),
-        icon: "trending_up",
-        name: `What's Hot (${
-          {
-            english: "English",
-            portuguese: "Português",
-            farsi: "فارسی",
-            japanese: "日本語",
-          }[language]
-        })`,
-        description:
-          "What's Hot feed, filtered to show only your preferred language",
-      },
+      following: makePrincipledFeed(
+        {
+          icon: "person_add",
+          name: "Following",
+          description:
+            "Posts from people you follow, in reverse-chronological order",
+        },
+        {
+          baseFeed: "following",
+          mutualsOnly: false,
+          replies: "all",
+          sorting: "time",
+        }
+      ),
+      whatsHot: makePrincipledFeed(
+        {
+          icon: "trending_up",
+          name: `What's Hot (${
+            {
+              english: "English",
+              portuguese: "Português",
+              farsi: "فارسی",
+              japanese: "日本語",
+            }[language]
+          })`,
+          description:
+            "What's Hot feed, filtered to show only your preferred language",
+        },
+        {
+          baseFeed: "popular",
+          mutualsOnly: false,
+          replies: "all",
+          language,
+          sorting: "time",
+        }
+      ),
       "one-from-each": makeOneFromEachFeed(),
-      mutuals: makeMutualsFeed(),
-      wholesome: {
-        ...makeEmbeddingsFeed(
-          "Wholesome tweet, kindness, love, fun banter",
-          "Angry tweets, with politics, people talking about gender & dating, etc."
-        ),
-        icon: "favorite",
-        name: "Wholesome",
-        description:
-          "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
-      },
+      mutuals: makePrincipledFeed(
+        {
+          icon: "people",
+          name: "Mutuals",
+          description: "Posts from your friends",
+        },
+        {
+          baseFeed: "following",
+          mutualsOnly: true,
+          replies: "all",
+          sorting: "time",
+        }
+      ),
+      wholesome: makePrincipledFeed(
+        {
+          icon: "favorite",
+          name: "Wholesome",
+          description:
+            "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
+        },
+        {
+          baseFeed: "following",
+          mutualsOnly: false,
+          replies: "all",
+          positivePrompts: ["Wholesome tweet, kindness, love, fun banter"],
+          negativePrompts: [
+            "Angry tweets, with politics, people talking about gender & dating, etc.",
+          ],
+          sorting: "combo",
+        }
+      ),
     };
 
     return {
@@ -118,17 +156,31 @@ function TimelineScreen(props: {
           return [
             id,
             {
-              ...makeEmbeddingsFeed(positivePrompt, negativePrompt),
-              name: name,
-              // a material icon that symbolizes "custom"
-              icon: sharedBy ? "public" : "bolt",
-              description:
-                (positivePrompt.trim() && negativePrompt.trim()) ||
-                (!positivePrompt.trim() && !negativePrompt.trim())
-                  ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
-                  : negativePrompt.trim()
-                  ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
-                  : `Custom timeline, created to show more "${positivePrompt.trim()}"`,
+              ...makePrincipledFeed(
+                {
+                  name: name,
+                  // a material icon that symbolizes "custom"
+                  icon: sharedBy ? "public" : "bolt",
+                  description:
+                    (positivePrompt.trim() && negativePrompt.trim()) ||
+                    (!positivePrompt.trim() && !negativePrompt.trim())
+                      ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
+                      : negativePrompt.trim()
+                      ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
+                      : `Custom timeline, created to show more "${positivePrompt.trim()}"`,
+                },
+                {
+                  baseFeed: "following",
+                  mutualsOnly: false,
+                  positivePrompts: positivePrompt.trim()
+                    ? [positivePrompt]
+                    : undefined,
+                  negativePrompts: negativePrompt.trim()
+                    ? [negativePrompt]
+                    : undefined,
+                  sorting: "combo",
+                }
+              ),
             },
           ] as [string, TimelineDefinitionType];
         })

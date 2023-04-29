@@ -35,6 +35,7 @@ export type SkylinePostType = {
   repostBy?: ProfileView;
 
   // Algorithm / Skyline-native stuff
+  embedding?: number[];
   score?: number;
   notRoot?: true;
 };
