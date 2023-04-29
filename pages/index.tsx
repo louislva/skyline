@@ -1084,7 +1084,7 @@ function LoginScreen(props: {
         className="flex flex-col"
         onSubmit={(e) => {
           e.preventDefault();
-          login(username, password);
+          login(username.replace("@", ""), password);
         }}
       >
         <input
