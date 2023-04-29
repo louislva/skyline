@@ -1,42 +1,22 @@
-import LoadingSpinner from "@/components/LoadingSpinner";
+import Modal from "@/components/Modal";
+import Timeline from "@/components/Timeline";
 import { LoginResponseDataType } from "@/helpers/bsky";
 import { LanguageType } from "@/helpers/classifyLanguage";
-import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
-  ProduceFeedOutput,
   TimelineConfigType,
   TimelineDefinitionType,
   makePrincipledFeed,
 } from "@/helpers/makeFeeds";
 import { BskyAgent } from "@atproto/api";
-import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import * as jwt from "jsonwebtoken";
-import moment from "moment";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import {
-  Fragment,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-function promptsToDescription(positivePrompt: string, negativePrompt: string) {
-  return (positivePrompt.trim() && negativePrompt.trim()) ||
-    (!positivePrompt.trim() && !negativePrompt.trim())
-    ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
-    : negativePrompt.trim()
-    ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
-    : `Custom timeline, created to show more "${positivePrompt.trim()}"`;
-}
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // TIMELINES
-type TimelineIdType = string;
-type TimelineDefinitionsType = {
+export type TimelineIdType = string;
+export type TimelineDefinitionsType = {
   [id: TimelineIdType]: TimelineDefinitionType;
 };
 type CustomAITimelineType = {
@@ -51,107 +31,6 @@ type CustomAITimelinesType = {
 type TimelineConfigsType = {
   [id: string]: TimelineConfigType;
 };
-
-// CONST
-const getDefaultTimelineConfigs = (
-  language: LanguageType
-): TimelineConfigsType => ({
-  following: {
-    meta: {
-      origin: "system",
-    },
-    identity: {
-      icon: "person_add",
-      name: "Following",
-      description:
-        "Posts from people you follow, in reverse chronological order",
-    },
-    behaviour: {
-      baseFeed: "following",
-      mutualsOnly: false,
-      replies: "all",
-      sorting: "time",
-    },
-  },
-  whatsHot: {
-    meta: {
-      origin: "system",
-    },
-    identity: {
-      icon: "trending_up",
-      name: `What's Hot (${
-        {
-          english: "English",
-          portuguese: "Português",
-          farsi: "فارسی",
-          japanese: "日本語",
-        }[language]
-      })`,
-      description:
-        "What's Hot feed, filtered to show only your preferred language",
-    },
-    behaviour: {
-      baseFeed: "popular",
-      mutualsOnly: false,
-      replies: "all",
-      language: language,
-      sorting: "time",
-    },
-  },
-  "one-from-each": {
-    meta: {
-      origin: "system",
-    },
-    identity: {
-      icon: "casino",
-      name: "One from each",
-      description:
-        "Latest post from each person you follow, randomly ordered. Useful for keeping up with everyone.",
-    },
-    behaviour: {
-      baseFeed: "one-from-each",
-      mutualsOnly: false,
-      replies: "none",
-    },
-  },
-  mutuals: {
-    meta: {
-      origin: "system",
-    },
-    identity: {
-      icon: "people",
-      name: "Mutuals",
-      description: "Posts from your friends",
-    },
-    behaviour: {
-      baseFeed: "following",
-      mutualsOnly: true,
-      replies: "all",
-      sorting: "time",
-    },
-  },
-  wholesome: {
-    meta: {
-      origin: "system",
-    },
-    identity: {
-      icon: "favorite",
-      name: "Wholesome",
-      description:
-        "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
-    },
-    behaviour: {
-      baseFeed: "following",
-      mutualsOnly: false,
-      replies: "all",
-      positivePrompts: ["Wholesome tweet, kindness, love, fun banter"],
-      negativePrompts: [
-        "Angry tweets, with politics, people talking about gender & dating, etc.",
-      ],
-      sorting: "combo",
-    },
-  },
-});
 
 // TIMELINE SCREEN
 function TimelineScreen(props: {
@@ -230,7 +109,6 @@ function TimelineScreen(props: {
     </div>
   );
 }
-
 function TweetComposer(props: { agent: BskyAgent }) {
   const { agent } = props;
 
@@ -329,7 +207,6 @@ function TweetComposer(props: { agent: BskyAgent }) {
     </>
   );
 }
-
 function Header(props: { logout?: () => void }) {
   const { logout } = props;
   const subheaders = [
@@ -376,7 +253,6 @@ function Header(props: { logout?: () => void }) {
     </>
   );
 }
-
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
@@ -598,511 +474,6 @@ function ShareTimelineButton(props: {
     </button>
   );
 }
-
-function Timeline(props: {
-  agent: BskyAgent;
-  egoHandle: string;
-  timelineId: TimelineIdType;
-  timelines: TimelineDefinitionsType;
-}) {
-  const { agent, egoHandle, timelineId, timelines } = props;
-
-  const [loadedSegments, setLoadedSegments] = useState<
-    (ProduceFeedOutput & {
-      loadTimestamp: number;
-    })[]
-  >([]);
-  // const [posts, setPosts] = useState<SkylinePostType[]>([]);
-  const posts = useMemo(
-    () => loadedSegments.flatMap((segment) => segment.posts),
-    [loadedSegments]
-  );
-  const cursor = loadedSegments.slice(-1)?.[0]?.cursor;
-  const [loading, setLoading] = useState<boolean>(false);
-
-  const loadSegment = async (direction: "down" | "up" = "down") => {
-    timelines[timelineId]
-      .produceFeed({
-        agent,
-        egoHandle,
-        cursor: direction === "down" ? cursor : undefined,
-      })
-      .then(async (result) => {
-        const loadTimestamp = Date.now();
-        if (direction === "up") {
-          setLoadedSegments((oldLoadedSegments) => [
-            {
-              loadTimestamp,
-              posts: [],
-              cursor: result.cursor,
-            },
-            ...oldLoadedSegments,
-          ]);
-        } else {
-          setLoadedSegments((oldLoadedSegments) => [
-            ...oldLoadedSegments,
-            {
-              loadTimestamp,
-              posts: [],
-              cursor: result.cursor,
-            },
-          ]);
-        }
-
-        const postsSliced = result.posts;
-        timelines[timelineId].postProcessFeed(
-          {
-            agent,
-            egoHandle,
-            posts: postsSliced,
-          },
-          (postsMerged) => {
-            setLoadedSegments((oldLoadedSegments) => {
-              const olderPostCids = oldLoadedSegments
-                .filter(
-                  (oldLoadedSegment) =>
-                    oldLoadedSegment.loadTimestamp !== loadTimestamp
-                )
-                .flatMap((oldLoadedSegment) =>
-                  oldLoadedSegment.posts.map((post) => post.postView.cid)
-                );
-
-              const postsMergedAndDeduplicated = postsMerged.filter(
-                (post) => !olderPostCids.includes(post.postView.cid)
-              );
-
-              return oldLoadedSegments.map((oldLoadedSegment, index) =>
-                oldLoadedSegment.loadTimestamp === loadTimestamp
-                  ? {
-                      ...oldLoadedSegment,
-                      posts: postsMergedAndDeduplicated,
-                    }
-                  : oldLoadedSegment
-              );
-            });
-            setLoading(false);
-          }
-        );
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    setLoadedSegments([]);
-    setLoading(true);
-
-    loadSegment();
-  }, [timelineId]);
-
-  const [now, setNow] = useState<number>(Date.now());
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000 * 10);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="border-2 w-full sm:w-136 border-gray-300 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl mb-8 overflow-hidden">
-      {posts.length > 0 ? (
-        <>
-          {now - loadedSegments?.[0]?.loadTimestamp > 60000 ? (
-            <button
-              className={
-                "w-full h-12 dark:bg-slate-700 bg-slate-100 text-base flex flex-row items-center justify-center unselectable outline-none " +
-                (loading
-                  ? "dark:text-slate-300 text-slate-500"
-                  : "dark:text-slate-50 text-slate-800")
-              }
-              onClick={() => {
-                if (!loading) {
-                  setLoading(true);
-                  loadSegment("up");
-                }
-              }}
-            >
-              {loading ? (
-                <LoadingSpinner
-                  containerClassName="w-6 h-6 mr-2"
-                  dotClassName="bg-slate-800 dark:bg-slate-400"
-                />
-              ) : (
-                <span className="material-icons text-2xl mr-2">
-                  arrow_upward
-                </span>
-              )}
-              Refresh feed
-            </button>
-          ) : null}
-          {posts.map((post, index) => (
-            <Post
-              agent={agent}
-              key={post.postView.cid + "index" + index}
-              post={post}
-              isLastPost={index === posts.length - 1}
-            />
-          ))}
-          <button
-            className={
-              "w-full h-16 dark:bg-slate-700 bg-slate-100 text-base flex flex-row items-center justify-center unselectable outline-none " +
-              (loading
-                ? "dark:text-slate-300 text-slate-500"
-                : "dark:text-slate-50 text-slate-800")
-            }
-            onClick={() => {
-              if (!loading) {
-                setLoading(true);
-                loadSegment();
-              }
-            }}
-          >
-            {loading ? (
-              <LoadingSpinner
-                containerClassName="w-6 h-6 mr-2"
-                dotClassName="bg-slate-800 dark:bg-slate-400"
-              />
-            ) : (
-              <span className="material-icons text-2xl mr-2">add</span>
-            )}
-            Load more
-          </button>
-        </>
-      ) : loading ? (
-        <div className="flex flex-row justify-center items-center text-3xl py-32">
-          <LoadingSpinner
-            containerClassName="w-12 h-12 mr-4"
-            dotClassName="bg-slate-800 dark:bg-slate-400"
-          />
-          <div className="text-slate-800 dark:text-slate-400">Loading...</div>
-        </div>
-      ) : (
-        <div className="flex flex-col justify-center items-center py-32 text-slate-800 dark:text-slate-400">
-          <div className="material-icons text-4xl mb-2">
-            sentiment_dissatisfied
-          </div>
-          <div className="text-2xl">No posts in your timeline</div>
-          <div className="text-lg mt-2 text-center">
-            Try following some more accounts! We wholeheartedly recommend:{" "}
-            <a
-              href="https://staging.bsky.app/profile/louis02x.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-700 dark:text-blue-400"
-            >
-              @louis02x.com
-            </a>{" "}
-            (it's me lol)
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-function Post(props: {
-  agent: BskyAgent;
-  post: SkylinePostType;
-  hasChildren?: boolean;
-  isLastPost?: boolean;
-}) {
-  const { agent, post, hasChildren, isLastPost } = props;
-  const author = post.postView.author;
-  const embed:
-    | {
-        $type: "app.bsky.embed.record#view" | "app.bsky.embed.images" | string;
-        images?:
-          | {
-              alt: string;
-              fullsize: string;
-              thumb: string;
-            }[]
-          | undefined;
-        record?: {
-          author: PostView["author"];
-          value: RecordType;
-        };
-      }
-    | undefined = post.postView.embed as any;
-  const record: RecordType = post.postView.record as any;
-  const repostBy = post.repostBy;
-
-  const bskyLink = `https://staging.bsky.app/profile/${author.handle}/post/${
-    post.postView.uri.split("/").slice(-1)[0]
-  }`;
-
-  const replyPosts: SkylinePostType[] = post.replyingTo || [];
-
-  const [isLiked, setIsLiked] = useState<boolean>(!!post.postView.viewer?.like);
-  const [likeUri, setLikeUri] = useState<string | null>(
-    post.postView.viewer?.like || null
-  );
-  const likeDiff = (isLiked ? 1 : 0) - (post.postView.viewer?.like ? 1 : 0);
-
-  const [isReposted, setIsReposted] = useState<boolean>(
-    !!post.postView.viewer?.repost
-  );
-  const [repostUri, setRepostUri] = useState<string | null>(
-    post.postView.viewer?.repost || null
-  );
-  const repostDiff =
-    (isReposted ? 1 : 0) - (post.postView.viewer?.repost ? 1 : 0);
-
-  return (
-    <>
-      {replyPosts.slice(0, 1).map((reply) => (
-        <Post
-          key={reply.postView.cid + "as child to" + post.postView.cid}
-          agent={agent}
-          post={reply}
-          hasChildren
-        />
-      ))}
-      {replyPosts.length > 2 && (
-        <div className="mt-0 mb-0 px-4 flex flex-row items-center text-sm mb-4 text-slate-700 dark:text-slate-300">
-          <div className="text-xl mr-1 -mt-2">...</div>
-          {replyPosts.length - 2} more replies{" "}
-          <div className="text-xl ml-1 -mt-2">...</div>
-        </div>
-      )}
-      {replyPosts.length > 1 &&
-        replyPosts
-          .slice(-1)
-          .map((reply) => (
-            <Post
-              key={
-                reply.postView.cid + "as a later child to" + post.postView.cid
-              }
-              agent={agent}
-              post={reply}
-              hasChildren
-            />
-          ))}
-      <Link href={bskyLink} target="_blank">
-        <div
-          className={
-            "p-4 overflow-hidden " +
-            (hasChildren || isLastPost
-              ? "border-none "
-              : "border-b border-gray-300 dark:border-slate-700 ")
-          }
-        >
-          {/* Reply / repost row */}
-          {(record.reply || repostBy) && (
-            <div
-              className={
-                "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-                (record.reply
-                  ? "border-t border-dashed border-slate-300 dark:border-slate-600 "
-                  : "")
-              }
-            >
-              {record.reply && (
-                <>
-                  <div className="material-icons mr-1">reply</div>
-                  <div>Replied</div>
-                </>
-              )}
-              {record.reply && repostBy && (
-                <div className="ml-2 mr-1 border-l h-3 w-0 border-slate-600 dark:border-slate-400"></div>
-              )}
-              {repostBy && (
-                <>
-                  <div className="material-icons mr-1">repeat</div>
-                  <div>Reposted by {repostBy.displayName}</div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Profile row */}
-          <div className="flex flex-row">
-            {/* Pfp */}
-            {author.avatar && (
-              <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
-                <img src={author.avatar} alt={author.name + "'s avatar"} />
-              </div>
-            )}
-            {/* Name / handle */}
-            <div className="flex flex-col">
-              <div className="font-semibold">{author.displayName}</div>
-              <div className="text-slate-500 dark:text-slate-400">
-                {author.handle ===
-                "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
-                  ? "i'm an asshole 💩"
-                  : "@" + author.handle}
-              </div>
-            </div>
-            {/* timestamp */}
-            <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
-              {moment(post.postView.indexedAt).fromNow()}
-            </div>
-          </div>
-          {/* Content row */}
-          <div className="mt-2">
-            {record.text.split("\n").map((line, index) => (
-              <Fragment key={line + "$" + index}>
-                {index !== 0 && <br />}
-                {line}
-              </Fragment>
-            ))}
-          </div>
-          {/* Images */}
-          {embed?.images && (
-            <div className="mt-2 flex flex-row h-72 gap-4">
-              {embed.images.slice(0, 3).map((image) => (
-                <div
-                  className="flex-1 rounded-md overflow-hidden"
-                  key={image.thumb}
-                >
-                  <img
-                    src={image.thumb}
-                    alt={image.alt}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Quote tweets */}
-          {embed?.record?.value?.text && (
-            <div className="mt-2 border border-slate-300 dark:border-slate-600 rounded-md p-2 py-2 text-sm">
-              <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
-                <img
-                  src={embed.record.author.avatar}
-                  className="w-4 h-4 rounded-full mr-1"
-                />
-                <span className="font-semibold mr-1 leading-none">
-                  {embed.record.author.displayName}
-                </span>
-                <span className="text-slate-500 dark:text-slate-400 leading-none">
-                  {" "}
-                  @{embed.record.author.handle}
-                </span>
-              </div>
-              <div className="bg-blue-4000">
-                {embed?.record?.value?.text?.split("\n").map((line, index) => (
-                  <Fragment key={line + "$" + index}>
-                    {index !== 0 && <br />}
-                    {line}
-                  </Fragment>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* Likes, RTs, etc. row */}
-          <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
-            <div className="material-icons mr-1">chat_bubble_outline</div>
-            <div className="mr-4">{post.postView.replyCount}</div>
-            <div className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
-              <div
-                className={
-                  "material-icons " +
-                  (isReposted
-                    ? "text-green-500"
-                    : "text-slate-700 dark:text-slate-300")
-                }
-                style={{
-                  paddingRight: 0.66 / 16 + "rem",
-                }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  setIsReposted(!isReposted);
-                  if (!isReposted) {
-                    const { uri } = await agent.repost(
-                      post.postView.uri,
-                      post.postView.cid
-                    );
-                    setRepostUri(uri);
-                  } else {
-                    if (repostUri) {
-                      agent.deleteRepost(repostUri);
-                    }
-                    setRepostUri(null);
-                  }
-                }}
-              >
-                repeat
-              </div>
-            </div>
-            <div className="mr-4">
-              {(post.postView.repostCount || 0) + repostDiff}
-            </div>
-            <div className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
-              <div
-                className={
-                  "material-icons " +
-                  (isLiked
-                    ? "text-red-500"
-                    : "text-slate-700 dark:text-slate-300")
-                }
-                style={{
-                  paddingRight: 0.66 / 16 + "rem",
-                }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  setIsLiked(!isLiked);
-                  if (!isLiked) {
-                    const { uri } = await agent.like(
-                      post.postView.uri,
-                      post.postView.cid
-                    );
-                    setLikeUri(uri);
-                  } else {
-                    if (likeUri) {
-                      agent.deleteLike(likeUri);
-                    }
-                    setLikeUri(null);
-                  }
-                }}
-              >
-                {isLiked ? "favorite" : "favorite_border"}
-              </div>
-            </div>
-            <div className="mr-4">
-              {(post.postView.likeCount || 0) + likeDiff}
-            </div>
-            {post.score && (
-              <>
-                {/* cog icon / settings icon bec it's a machine */}
-                <div className="material-icons ml-auto mr-1 text-gray-400">
-                  settings
-                </div>
-                <div className="text-gray-400">
-                  {/* {(post.score * 100).toFixed(2)} */}
-                  {(
-                    Math.pow(Math.abs(post.score), 0.3) *
-                    Math.sign(post.score) *
-                    100
-                  ).toFixed(0)}
-                  % match
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </Link>
-    </>
-  );
-}
-
-function Modal(props: { children: ReactNode; close: () => void }) {
-  const { children, close } = props;
-  return (
-    <div
-      className="fixed top-0 left-0 p-4 w-screen h-screen bg-black/50 backdrop-blur-md flex flex-row justify-center items-center"
-      onClick={() => close()}
-    >
-      <div
-        className="flex-1 rounded-lg p-4 max-w-lg dark:border-2 dark:border-slate-600 bg-white dark:bg-slate-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {props.children}
-      </div>
-    </div>
-  );
-}
 function ConfigureTimelineModal(props: {
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
@@ -1318,6 +689,7 @@ function SecurityInfo() {
   );
 }
 
+// HELPERS
 type RefreshJwtType = {
   exp: number;
   iat: number;
@@ -1331,7 +703,6 @@ type AccessJwtType = {
   scope: string;
   sub: string;
 };
-
 function convertOldCustomToNewConfig(
   config: CustomAITimelineType,
   id: string = ""
@@ -1363,6 +734,117 @@ function convertOldCustomToNewConfig(
     },
   };
 }
+function promptsToDescription(positivePrompt: string, negativePrompt: string) {
+  return (positivePrompt.trim() && negativePrompt.trim()) ||
+    (!positivePrompt.trim() && !negativePrompt.trim())
+    ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
+    : negativePrompt.trim()
+    ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
+    : `Custom timeline, created to show more "${positivePrompt.trim()}"`;
+}
+function getDefaultTimelineConfigs(
+  language: LanguageType
+): TimelineConfigsType {
+  return {
+    following: {
+      meta: {
+        origin: "system",
+      },
+      identity: {
+        icon: "person_add",
+        name: "Following",
+        description:
+          "Posts from people you follow, in reverse chronological order",
+      },
+      behaviour: {
+        baseFeed: "following",
+        mutualsOnly: false,
+        replies: "all",
+        sorting: "time",
+      },
+    },
+    whatsHot: {
+      meta: {
+        origin: "system",
+      },
+      identity: {
+        icon: "trending_up",
+        name: `What's Hot (${
+          {
+            english: "English",
+            portuguese: "Português",
+            farsi: "فارسی",
+            japanese: "日本語",
+          }[language]
+        })`,
+        description:
+          "What's Hot feed, filtered to show only your preferred language",
+      },
+      behaviour: {
+        baseFeed: "popular",
+        mutualsOnly: false,
+        replies: "all",
+        language: language,
+        sorting: "time",
+      },
+    },
+    "one-from-each": {
+      meta: {
+        origin: "system",
+      },
+      identity: {
+        icon: "casino",
+        name: "One from each",
+        description:
+          "Latest post from each person you follow, randomly ordered. Useful for keeping up with everyone.",
+      },
+      behaviour: {
+        baseFeed: "one-from-each",
+        mutualsOnly: false,
+        replies: "none",
+      },
+    },
+    mutuals: {
+      meta: {
+        origin: "system",
+      },
+      identity: {
+        icon: "people",
+        name: "Mutuals",
+        description: "Posts from your friends",
+      },
+      behaviour: {
+        baseFeed: "following",
+        mutualsOnly: true,
+        replies: "all",
+        sorting: "time",
+      },
+    },
+    wholesome: {
+      meta: {
+        origin: "system",
+      },
+      identity: {
+        icon: "favorite",
+        name: "Wholesome",
+        description:
+          "AI-feed boosting wholesome tweets, and removing angry / political / culture war tweets",
+      },
+      behaviour: {
+        baseFeed: "following",
+        mutualsOnly: false,
+        replies: "all",
+        positivePrompts: ["Wholesome tweet, kindness, love, fun banter"],
+        negativePrompts: [
+          "Angry tweets, with politics, people talking about gender & dating, etc.",
+        ],
+        sorting: "combo",
+      },
+    },
+  };
+}
+
+// SINGLE-USE HOOKS
 function useMigrateOldCustomTimelines(
   customTimelineConfigs: TimelineConfigsType,
   setCustomTimelineConfigs: (configs: TimelineConfigsType) => void
@@ -1387,81 +869,10 @@ function useMigrateOldCustomTimelines(
     }
   }, [customAITimelines]);
 }
-
-export default function Main() {
-  // Bluesky API
-  const agent = useRef<BskyAgent>(
-    new BskyAgent({
-      service: "https://bsky.social",
-    })
-  ).current;
-
-  // Auth stuff
-  const [loginResponseData, setLoginResponseData] =
-    useLocalStorageState<LoginResponseDataType | null>(
-      "@loginResponseData",
-      null
-    );
-
-  // TODO: rename
-  const egoHandle = loginResponseData?.handle;
-  const accessJwt = !!loginResponseData?.accessJwt
-    ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
-    : null;
-  const loginExpiration = accessJwt?.exp;
-  const timeUntilLoginExpire = loginExpiration
-    ? loginExpiration * 1000 - Date.now()
-    : null;
-  useEffect(() => {
-    if (timeUntilLoginExpire) {
-      const timeout = setTimeout(() => {
-        setLoginResponseData(null);
-      }, Math.max(timeUntilLoginExpire, 0));
-
-      return () => clearTimeout(timeout);
-    }
-  }, [timeUntilLoginExpire]);
-  useEffect(() => {
-    if (loginResponseData && !agent.session) {
-      agent.resumeSession(loginResponseData);
-    }
-  }, [loginResponseData]);
-
-  // Styling for body
-  useEffect(() => {
-    const className = "bg-slate-50 dark:bg-slate-900";
-    className.split(" ").forEach((name) => document.body.classList.add(name));
-
-    return () => {
-      className
-        .split(" ")
-        .forEach((name) => document.body.classList.remove(name));
-    };
-  }, []);
-
-  // Custom Timelines Installed
-  const [language, setLanguage] = useLocalStorageState<LanguageType>(
-    "@language",
-    "english"
-  );
-  const defaultTimelineConfigs = getDefaultTimelineConfigs(language);
-  const [customTimelineConfigs, setCustomTimelineConfigs] =
-    useLocalStorageState<TimelineConfigsType>("@customTimelineConfigs", {});
-  const timelineConfigs = {
-    ...defaultTimelineConfigs,
-    ...customTimelineConfigs,
-  };
-  const timelineDefinitions: {
-    [id: TimelineIdType]: TimelineDefinitionType;
-  } = Object.fromEntries(
-    Object.entries(timelineConfigs).map(([key, config]) => {
-      return [key, makePrincipledFeed(config["identity"], config["behaviour"])];
-    })
-  );
-
-  // Makes sure to migrate timelines from @customAITimelines into @customTimelineConfigs (if any)
-  useMigrateOldCustomTimelines(customTimelineConfigs, setCustomTimelineConfigs);
-
+function useCustomTimelineInstaller(
+  customTimelineConfigs: TimelineConfigsType,
+  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void
+) {
   const router = useRouter();
   useEffect(() => {
     if (router.query.tl) {
@@ -1506,6 +917,88 @@ export default function Main() {
       );
     }
   }, [router.query.tl]);
+}
+function useAuthorization(agent: BskyAgent) {
+  const [loginResponseData, setLoginResponseData] =
+    useLocalStorageState<LoginResponseDataType | null>(
+      "@loginResponseData",
+      null
+    );
+
+  const egoHandle = loginResponseData?.handle;
+  const accessJwt = !!loginResponseData?.accessJwt
+    ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
+    : null;
+  const loginExpiration = accessJwt?.exp;
+  const timeUntilLoginExpire = loginExpiration
+    ? loginExpiration * 1000 - Date.now()
+    : null;
+  useEffect(() => {
+    if (timeUntilLoginExpire) {
+      const timeout = setTimeout(() => {
+        setLoginResponseData(null);
+      }, Math.max(timeUntilLoginExpire, 0));
+
+      return () => clearTimeout(timeout);
+    }
+  }, [timeUntilLoginExpire]);
+  useEffect(() => {
+    if (loginResponseData && !agent.session) {
+      agent.resumeSession(loginResponseData);
+    }
+  }, [loginResponseData]);
+
+  return { egoHandle, setLoginResponseData };
+}
+
+export default function Main() {
+  // Bluesky API
+  const agent = useRef<BskyAgent>(
+    new BskyAgent({
+      service: "https://bsky.social",
+    })
+  ).current;
+
+  // Auth stuff
+  const { egoHandle, setLoginResponseData } = useAuthorization(agent);
+
+  // Styling for body
+  useEffect(() => {
+    const className = "bg-slate-50 dark:bg-slate-900";
+    className.split(" ").forEach((name) => document.body.classList.add(name));
+
+    return () => {
+      className
+        .split(" ")
+        .forEach((name) => document.body.classList.remove(name));
+    };
+  }, []);
+
+  // Build timelines
+  const [language, setLanguage] = useLocalStorageState<LanguageType>(
+    "@language",
+    "english"
+  );
+  const defaultTimelineConfigs = getDefaultTimelineConfigs(language);
+  const [customTimelineConfigs, setCustomTimelineConfigs] =
+    useLocalStorageState<TimelineConfigsType>("@customTimelineConfigs", {});
+  const timelineConfigs = {
+    ...defaultTimelineConfigs,
+    ...customTimelineConfigs,
+  };
+  const timelineDefinitions: {
+    [id: TimelineIdType]: TimelineDefinitionType;
+  } = Object.fromEntries(
+    Object.entries(timelineConfigs).map(([key, config]) => {
+      return [key, makePrincipledFeed(config["identity"], config["behaviour"])];
+    })
+  );
+
+  // Makes sure to migrate timelines from @customAITimelines into @customTimelineConfigs (if any)
+  useMigrateOldCustomTimelines(customTimelineConfigs, setCustomTimelineConfigs);
+
+  // If ?tl=<key> in URL, install a new custom timeline.
+  useCustomTimelineInstaller(customTimelineConfigs, setCustomTimelineConfigs);
 
   return (
     <>
