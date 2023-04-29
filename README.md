@@ -85,6 +85,8 @@ Here is the to-do list I use to track progress - feel free to contribute!
 - [ ] Project "Social Audio"
   - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
 - [ ] Project "DMs"
+  - [ ] DB-based DM system
+  - [ ] User @skyline.gay account to notify users of new DMs
 - [ ] Project "Lists"
   - [ ] Ability to use custom list as the baseFeed for a timeline
   - [ ] Role Play: automatically create a new list from someone else's following
