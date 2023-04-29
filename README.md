@@ -57,6 +57,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Language-specific What's Hot
   - [x] Reddit-like scoring algo: recency \* quality, with a minimum threshold to appear
   - [x] <u>Infinite feeds - query with the next cursor</u>
+  - [ ] Unify custom-timeline & built-in timeline concept
   - [ ] Automatic infinite feeds - when you're 6 posts away from bottom, load more
   - [ ] Custom feed settings:
     - [ ] Base: What's Hot / Mutuals / Following
@@ -86,7 +87,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
 - [ ] Project "DMs"
   - [ ] DB-based DM system
-  - [ ] User @skyline.gay account to notify users of new DMs
+  - [ ] Bot @skyline.gay account to notify users of new DMs
 - [ ] Project "Lists"
   - [ ] Ability to use custom list as the baseFeed for a timeline
   - [ ] Role Play: automatically create a new list from someone else's following
@@ -96,3 +97,8 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Timeline Library: a place that lists shared timelines, which you can then install
 - [ ] Project "Analytics"
   - [ ] Keep stats on logins, usage time, feed %, created timelines, etc.
+- [ ] Project "Fleets"
+  - [ ] Custom fleets
+  - [ ] Auto-post link to fleet
+- [ ] Project "Graysky Integration"
+  - [ ] Expose timelines as an API
