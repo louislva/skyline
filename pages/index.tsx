@@ -163,6 +163,8 @@ function TimelineScreen(props: {
   };
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
+  language: LanguageType;
+  setLanguage: (value: LanguageType) => void;
 }) {
   const {
     setLoginResponseData,
@@ -171,12 +173,9 @@ function TimelineScreen(props: {
     timelineDefinitions,
     customTimelineConfigs,
     setCustomTimelineConfigs,
+    language,
+    setLanguage,
   } = props;
-
-  const [language, setLanguage] = useLocalStorageState<LanguageType>(
-    "@language",
-    "english"
-  );
 
   const timelines = useMemo(() => {
     return timelineDefinitions;
@@ -1403,6 +1402,7 @@ export default function Main() {
       "@loginResponseData",
       null
     );
+
   // TODO: rename
   const egoHandle = loginResponseData?.handle;
   const accessJwt = !!loginResponseData?.accessJwt
@@ -1440,7 +1440,10 @@ export default function Main() {
   }, []);
 
   // Custom Timelines Installed
-  const language: LanguageType = "english";
+  const [language, setLanguage] = useLocalStorageState<LanguageType>(
+    "@language",
+    "english"
+  );
   const defaultTimelineConfigs = getDefaultTimelineConfigs(language);
   const [customTimelineConfigs, setCustomTimelineConfigs] =
     useLocalStorageState<TimelineConfigsType>("@customTimelineConfigs", {});
@@ -1519,6 +1522,8 @@ export default function Main() {
             timelineDefinitions={timelineDefinitions}
             customTimelineConfigs={customTimelineConfigs}
             setCustomTimelineConfigs={setCustomTimelineConfigs}
+            language={language}
+            setLanguage={setLanguage}
           />
         ) : (
           <LoginScreen
