@@ -1209,7 +1209,6 @@ function LoginScreen(props: {
         if (response.success) {
           setLoginResponseData({
             ...response.data,
-            refreshJwt: "", // removing this for security reasons
           });
         } else {
           // Error
@@ -1303,6 +1302,20 @@ function SecurityInfo() {
   );
 }
 
+type RefreshJwtType = {
+  exp: number;
+  iat: number;
+  jti: string; // long random key
+  scope: string; // "com.atproto.refresh"
+  sub: string; // did
+};
+type AccessJwtType = {
+  exp: number;
+  iat: number;
+  scope: string;
+  sub: string;
+};
+
 export default function Main() {
   // Bluesky API
   const agent = useRef<BskyAgent>(
@@ -1319,12 +1332,7 @@ export default function Main() {
     );
   const identifier = loginResponseData?.handle;
   const accessJwt = !!loginResponseData?.accessJwt
-    ? (jwt.decode(loginResponseData.accessJwt) as {
-        exp: number;
-        iat: number;
-        scope: string;
-        sub: string;
-      })
+    ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
     : null;
   const loginExpiration = accessJwt?.exp;
   const timeUntilLoginExpire = loginExpiration
