@@ -32,14 +32,14 @@ import {
 type TimelinesType = {
   [id: string]: TimelineDefinitionType;
 };
-type CustomTimelineType = {
+type CustomAITimelineType = {
   name: string;
   positivePrompt: string;
   negativePrompt: string;
   sharedBy?: string;
 };
-type CustomTimelinesType = {
-  [id: string]: CustomTimelineType;
+type CustomAITimelinesType = {
+  [id: string]: CustomAITimelineType;
 };
 type TimelineIdType = string;
 
@@ -48,8 +48,8 @@ function TimelineScreen(props: {
   setLoginResponseData: (value: LoginResponseDataType | null) => void;
   egoIdentifier: string;
   agent: BskyAgent;
-  customTimelines: CustomTimelinesType;
-  setCustomTimelines: (value: CustomTimelinesType) => void;
+  customTimelines: CustomAITimelinesType;
+  setCustomTimelines: (value: CustomAITimelinesType) => void;
 }) {
   const {
     setLoginResponseData,
@@ -65,18 +65,6 @@ function TimelineScreen(props: {
   );
 
   const timelines = useMemo(() => {
-    const languagesPositivePrompt = {
-      english: "thank you",
-      portuguese: "obrigado",
-      farsi: "با تشکر",
-      japanese: "ありがとう",
-    };
-    const languagePositivePrompt = languagesPositivePrompt[language];
-    const languageNegativePrompt = Object.entries(languagesPositivePrompt)
-      .filter(([k, _]) => k !== language)
-      .map(([_, v]) => v)
-      .join(", ");
-
     const TIMELINES: TimelinesType = {
       following: makePrincipledFeed(
         {
@@ -387,8 +375,8 @@ function Header(props: { logout?: () => void }) {
 function TimelinePicker(props: {
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
-  customTimelines: CustomTimelinesType;
-  setCustomTimelines: (value: CustomTimelinesType) => void;
+  customTimelines: CustomAITimelinesType;
+  setCustomTimelines: (value: CustomAITimelinesType) => void;
   egoIdentifier: string;
   timelines: TimelinesType;
   language: LanguageType;
@@ -531,7 +519,7 @@ function TimelinePicker(props: {
   );
 }
 function ShareTimelineButton(props: {
-  timelineConfig: CustomTimelineType;
+  timelineConfig: CustomAITimelineType;
   egoIdentifier: string;
 }) {
   const { timelineConfig, egoIdentifier } = props;
@@ -1111,8 +1099,8 @@ function Modal(props: { children: ReactNode; close: () => void }) {
   );
 }
 function ConfigureTimelineModal(props: {
-  customTimelines: CustomTimelinesType;
-  setCustomTimelines: (timelines: CustomTimelinesType) => void;
+  customTimelines: CustomAITimelinesType;
+  setCustomTimelines: (timelines: CustomAITimelinesType) => void;
   close: () => void;
   editingCustomAITimelineId: string | null;
 }) {
@@ -1366,8 +1354,8 @@ export default function Main() {
   }, []);
 
   // Custom Timelines Installed
-  const [customTimelines, setCustomTimelines] =
-    useLocalStorageState<CustomTimelinesType>("@customAITimelines", {});
+  const [customAITimelines, setCustomAITimelines] =
+    useLocalStorageState<CustomAITimelinesType>("@customAITimelines", {});
 
   const router = useRouter();
   useEffect(() => {
@@ -1380,8 +1368,8 @@ export default function Main() {
                 scroll: false,
                 shallow: true,
               });
-              setCustomTimelines({
-                ...customTimelines,
+              setCustomAITimelines({
+                ...customAITimelines,
                 [Date.now().toString()]: {
                   ...json.config,
                   sharedBy: json.created_by_handle,
@@ -1408,8 +1396,8 @@ export default function Main() {
             setLoginResponseData={setLoginResponseData}
             egoIdentifier={identifier}
             agent={agent}
-            customTimelines={customTimelines}
-            setCustomTimelines={setCustomTimelines}
+            customTimelines={customAITimelines}
+            setCustomTimelines={setCustomAITimelines}
           />
         ) : (
           <LoginScreen
