@@ -371,7 +371,7 @@ function Header(props: { logout?: () => void }) {
         <div className="flex-1 flex flex-row justify-end items-center">
           {logout && (
             <button
-              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center ml-4 mr-0 sm:mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700"
+              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center ml-4 mr-0 sm:mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none"
               onClick={() => logout()}
             >
               <span className="material-icons mr-2">logout</span>
@@ -421,7 +421,7 @@ function TimelinePicker(props: {
             return (
               <button
                 key={id}
-                className={`p-2 h-10 flex flex-row items-center border-slate-300 dark:border-slate-600 ${
+                className={`outline-none p-2 h-10 flex flex-row items-center border-slate-300 dark:border-slate-600 ${
                   id === timelineId
                     ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
                     : ""
@@ -449,7 +449,7 @@ function TimelinePicker(props: {
           })}
         </div>
         <button
-          className="p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0"
+          className="p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0 outline-none"
           onClick={() => {
             setCreateTimelineModalOpen(true);
           }}
@@ -494,7 +494,7 @@ function TimelinePicker(props: {
                 egoIdentifier={egoIdentifier}
               />
               <button
-                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400"
+                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
                 onClick={() => {
                   setEditingCustomAITimelineId(timelineId);
                 }}
@@ -503,7 +503,7 @@ function TimelinePicker(props: {
                 Edit
               </button>
               <button
-                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400"
+                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400 outline-none"
                 onClick={() => {
                   // are you sure alert?
                   if (
@@ -552,7 +552,7 @@ function ShareTimelineButton(props: {
   return (
     <button
       className={
-        "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 " +
+        "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 outline-none " +
         (loading ? "opacity-60 cursor-default" : "")
       }
       onClick={async () => {
@@ -719,8 +719,10 @@ function Timeline(props: {
           {now - loadedSegments?.[0]?.loadTimestamp > 60000 ? (
             <button
               className={
-                "w-full h-12 bg-slate-700 text-base flex flex-row items-center justify-center unselectable " +
-                (loading ? "text-slate-300" : "text-slate-50")
+                "w-full h-12 dark:bg-slate-700 bg-slate-100 text-base flex flex-row items-center justify-center unselectable outline-none " +
+                (loading
+                  ? "dark:text-slate-300 text-slate-500"
+                  : "dark:text-slate-50 text-slate-800")
               }
               onClick={() => {
                 if (!loading) {
@@ -752,8 +754,10 @@ function Timeline(props: {
           ))}
           <button
             className={
-              "w-full h-16 bg-slate-700 text-base flex flex-row items-center justify-center unselectable " +
-              (loading ? "text-slate-300" : "text-slate-50")
+              "w-full h-16 dark:bg-slate-700 bg-slate-100 text-base flex flex-row items-center justify-center unselectable outline-none " +
+              (loading
+                ? "dark:text-slate-300 text-slate-500"
+                : "dark:text-slate-50 text-slate-800")
             }
             onClick={() => {
               if (!loading) {
@@ -1094,11 +1098,11 @@ function Modal(props: { children: ReactNode; close: () => void }) {
   const { children, close } = props;
   return (
     <div
-      className="fixed top-0 left-0 w-screen h-screen bg-black/50 backdrop-blur-md	flex justify-center items-center"
+      className="fixed top-0 left-0 p-4 w-screen h-screen bg-black/50 backdrop-blur-md flex flex-row justify-center items-center"
       onClick={() => close()}
     >
       <div
-        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-128 dark:border-2 dark:border-slate-600"
+        className="flex-1 rounded-lg p-4 max-w-lg dark:border-2 dark:border-slate-600 bg-white dark:bg-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {props.children}
@@ -1168,7 +1172,7 @@ function ConfigureTimelineModal(props: {
           onChange={(e) => setNegativePrompt(e.target.value)}
         />
         <button
-          className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto"
+          className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto outline-none"
           onClick={() => {
             setCustomTimelines({
               ...customTimelines,
@@ -1253,7 +1257,10 @@ function LoginScreen(props: {
           onChange={(e) => setPassword(e.target.value)}
           className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
         />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+        <button
+          type="submit"
+          className="bg-blue-500 text-white p-2 rounded outline-none"
+        >
           Login
         </button>
       </form>
