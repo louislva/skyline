@@ -156,7 +156,7 @@ const getDefaultTimelineConfigs = (
 // TIMELINE SCREEN
 function TimelineScreen(props: {
   setLoginResponseData: (value: LoginResponseDataType | null) => void;
-  egoIdentifier: string;
+  egoHandle: string;
   agent: BskyAgent;
   timelineDefinitions: {
     [id: string]: TimelineDefinitionType;
@@ -166,7 +166,7 @@ function TimelineScreen(props: {
 }) {
   const {
     setLoginResponseData,
-    egoIdentifier,
+    egoHandle,
     agent,
     timelineDefinitions,
     customTimelineConfigs,
@@ -200,7 +200,7 @@ function TimelineScreen(props: {
       <TimelinePicker
         timelineId={timelineId}
         setTimelineId={setTimelineId}
-        egoIdentifier={egoIdentifier}
+        egoHandle={egoHandle}
         timelines={timelines}
         setCreateTimelineModalOpen={setCreateTimelineModalOpen}
         setEditingCustomAITimelineId={setEditingCustomAITimelineId}
@@ -213,7 +213,7 @@ function TimelineScreen(props: {
         key={timelineId + "--" + language}
         timelineId={timelineId}
         agent={agent}
-        egoIdentifier={egoIdentifier}
+        egoHandle={egoHandle}
         timelines={timelines}
       />
       <TweetComposer agent={agent} />
@@ -383,7 +383,7 @@ function TimelinePicker(props: {
   setTimelineId: (timelineId: TimelineIdType) => void;
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
-  egoIdentifier: string;
+  egoHandle: string;
   timelines: TimelineDefinitionsType;
   language: LanguageType;
   setLanguage: (language: LanguageType) => void;
@@ -395,7 +395,7 @@ function TimelinePicker(props: {
     setTimelineId,
     customTimelineConfigs,
     setCustomTimelineConfigs,
-    egoIdentifier,
+    egoHandle,
     timelines,
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
@@ -485,7 +485,7 @@ function TimelinePicker(props: {
               <ShareTimelineButton
                 key={timelineId}
                 timelineConfig={customTimelineConfigs[timelineId]}
-                egoIdentifier={egoIdentifier}
+                egoHandle={egoHandle}
               />
               <button
                 className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
@@ -526,9 +526,9 @@ function TimelinePicker(props: {
 }
 function ShareTimelineButton(props: {
   timelineConfig: TimelineConfigType;
-  egoIdentifier: string;
+  egoHandle: string;
 }) {
-  const { timelineConfig, egoIdentifier } = props;
+  const { timelineConfig, egoHandle } = props;
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -559,7 +559,7 @@ function ShareTimelineButton(props: {
           },
           body: JSON.stringify({
             config_new: timelineConfig,
-            created_by_handle: egoIdentifier,
+            created_by_handle: egoHandle,
           }),
         })
           .then((res) => {
@@ -602,11 +602,11 @@ function ShareTimelineButton(props: {
 
 function Timeline(props: {
   agent: BskyAgent;
-  egoIdentifier: string;
+  egoHandle: string;
   timelineId: TimelineIdType;
   timelines: TimelineDefinitionsType;
 }) {
-  const { agent, egoIdentifier, timelineId, timelines } = props;
+  const { agent, egoHandle, timelineId, timelines } = props;
 
   const [loadedSegments, setLoadedSegments] = useState<
     (ProduceFeedOutput & {
@@ -625,7 +625,7 @@ function Timeline(props: {
     timelines[timelineId]
       .produceFeed({
         agent,
-        egoIdentifier,
+        egoHandle,
         cursor: direction === "down" ? cursor : undefined,
       })
       .then(async (result) => {
@@ -654,7 +654,7 @@ function Timeline(props: {
         timelines[timelineId].postProcessFeed(
           {
             agent,
-            egoIdentifier,
+            egoHandle,
             posts: postsSliced,
           },
           (postsMerged) => {
@@ -1404,7 +1404,7 @@ export default function Main() {
       null
     );
   // TODO: rename
-  const egoIdentifier = loginResponseData?.handle;
+  const egoHandle = loginResponseData?.handle;
   const accessJwt = !!loginResponseData?.accessJwt
     ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
     : null;
@@ -1511,10 +1511,10 @@ export default function Main() {
         <link rel="icon" href="/skyline-16.png" />
       </Head>
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100">
-        {egoIdentifier ? (
+        {egoHandle ? (
           <TimelineScreen
             setLoginResponseData={setLoginResponseData}
-            egoIdentifier={egoIdentifier}
+            egoHandle={egoHandle}
             agent={agent}
             timelineDefinitions={timelineDefinitions}
             customTimelineConfigs={customTimelineConfigs}

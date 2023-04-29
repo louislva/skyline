@@ -52,13 +52,13 @@ export type TimelineDefinitionType = {
   description: string;
   produceFeed: (params: {
     agent: BskyAgent;
-    egoIdentifier: string;
+    egoHandle: string;
     cursor: string | undefined;
   }) => Promise<ProduceFeedOutput>;
   postProcessFeed: (
     params: {
       agent: BskyAgent;
-      egoIdentifier: string;
+      egoHandle: string;
       posts: SkylinePostType[];
     },
     setPostsCallback: (posts: SkylinePostType[]) => void
@@ -66,7 +66,7 @@ export type TimelineDefinitionType = {
 };
 
 const defaultPostProcessFeed: TimelineDefinitionType["postProcessFeed"] = (
-  { agent, egoIdentifier, posts },
+  { agent, egoHandle, posts },
   callback
 ) => {
   mergeConversationsContinual(agent, posts, (postsMerged) => {
@@ -80,10 +80,10 @@ function markdownQuote(text: string): string {
 
 async function loadOneFromEachFeed(
   agent: BskyAgent,
-  egoIdentifier: string,
+  egoHandle: string,
   cursor?: string | undefined
 ): Promise<ProduceFeedOutput> {
-  const follows = await getFollows(agent, egoIdentifier);
+  const follows = await getFollows(agent, egoHandle);
 
   let postsPerUser = await Promise.all(
     follows.map((follow) =>
@@ -246,11 +246,11 @@ export function makePrincipledFeed(
 
   return {
     ...identity,
-    produceFeed: async ({ agent, egoIdentifier, cursor }) => {
+    produceFeed: async ({ agent, egoHandle, cursor }) => {
       // 1. DATA LOADS
       // Load mutuals list asynchronously, if required
       let mutualsPromise: Promise<ProfileView[]> = Promise.resolve([]);
-      if (mutualsOnly) mutualsPromise = getMutuals(agent, egoIdentifier);
+      if (mutualsOnly) mutualsPromise = getMutuals(agent, egoHandle);
 
       // Load base feed
 
@@ -258,7 +258,7 @@ export function makePrincipledFeed(
         baseFeed
       )
         ? await loadBaseFeed(baseFeed as "following" | "popular", agent, cursor)
-        : await loadOneFromEachFeed(agent, egoIdentifier, cursor);
+        : await loadOneFromEachFeed(agent, egoHandle, cursor);
 
       // Load LLM scoring
       let positivePromptEmbeddings: number[][] = [];
