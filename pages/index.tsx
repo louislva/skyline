@@ -83,7 +83,7 @@ function TimelineScreen(props: {
           icon: "person_add",
           name: "Following",
           description:
-            "Posts from people you follow, in reverse-chronological order",
+            "Posts from people you follow, in reverse chronological order",
         },
         {
           baseFeed: "following",

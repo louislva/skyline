@@ -194,6 +194,13 @@ function postsToText(posts: SkylinePostType[]): string[] {
   });
 }
 
+function average(array: number[]): number {
+  return array.reduce((a, b) => a + b, 0) / array.length;
+}
+function max(array: number[]): number {
+  return array.reduce((a, b) => Math.max(a, b));
+}
+
 const DEFAULT_PROMPT = ["says"];
 export function makePrincipledFeed(
   identity: {
@@ -302,15 +309,17 @@ export function makePrincipledFeed(
       if (useLLM) {
         // score by LLM embedding
         posts = posts.map((post) => {
-          const averagePositiveScore =
-            positivePromptEmbeddings
-              .map((e, i) => cosineSimilarity(post.embedding, e))
-              .reduce((a, b) => a + b, 0) / positivePromptEmbeddings.length;
-          const averageNegativeScore =
-            negativePromptEmbeddings
-              .map((e, i) => cosineSimilarity(post.embedding, e))
-              .reduce((a, b) => a + b, 0) / negativePromptEmbeddings.length;
-          const score = averagePositiveScore - averageNegativeScore;
+          const positiveScore = max(
+            positivePromptEmbeddings.map((e, i) =>
+              cosineSimilarity(post.embedding, e)
+            )
+          );
+          const negativeScore = max(
+            negativePromptEmbeddings.map((e, i) =>
+              cosineSimilarity(post.embedding, e)
+            )
+          );
+          const score = positiveScore - negativeScore;
 
           return { ...post, score };
         });
