@@ -4,6 +4,7 @@ import { LoginResponseDataType } from "@/helpers/bsky";
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { useLocalStorageState } from "@/helpers/hooks";
 import {
+  DEFAULT_BEHAVIOUR,
   TimelineConfigType,
   TimelineDefinitionType,
   makePrincipledFeed,
@@ -730,7 +731,10 @@ function ConfigureTimelineModal(props: {
                 identity: {
                   ...config.identity,
                   name: config.identity.name.trim(),
-                  description: behaviourToDescription(behaviour),
+                  description: behaviourToDescription({
+                    ...DEFAULT_BEHAVIOUR,
+                    ...behaviour,
+                  }),
                 },
                 behaviour,
               },
@@ -874,6 +878,13 @@ function convertOldCustomToNewConfig(
   id: string = ""
 ): TimelineConfigType {
   const { name, positivePrompt, negativePrompt, sharedBy } = config;
+  const behaviour: TimelineConfigType["behaviour"] = {
+    baseFeed: "following",
+    mutualsOnly: false,
+    positivePrompts: positivePrompt.trim() ? [positivePrompt] : undefined,
+    negativePrompts: negativePrompt.trim() ? [negativePrompt] : undefined,
+    sorting: "combo",
+  };
   return {
     meta: {
       origin: sharedBy ? "shared" : "self",
@@ -889,15 +900,12 @@ function convertOldCustomToNewConfig(
       name: name,
       // a material icon that symbolizes "custom"
       icon: sharedBy ? "public" : "bolt",
-      description: promptsToDescription(positivePrompt, negativePrompt),
+      description: behaviourToDescription({
+        ...DEFAULT_BEHAVIOUR,
+        ...behaviour,
+      }),
     },
-    behaviour: {
-      baseFeed: "following",
-      mutualsOnly: false,
-      positivePrompts: positivePrompt.trim() ? [positivePrompt] : undefined,
-      negativePrompts: negativePrompt.trim() ? [negativePrompt] : undefined,
-      sorting: "combo",
-    },
+    behaviour,
   };
 }
 function promptsToDescription(positivePrompt: string, negativePrompt: string) {
@@ -912,18 +920,25 @@ function promptsToDescription(positivePrompt: string, negativePrompt: string) {
 function behaviourToDescription(
   behaviour: TimelineConfigType["behaviour"]
 ): string {
-  const A = behaviour.mutualsOnly
+  const segmentBase = behaviour.mutualsOnly
     ? "Mutuals feed"
     : behaviour.baseFeed === "popular"
     ? "What's Hot feed"
     : "Following feed";
-  const B = behaviour.replies === "none" ? " without replies" : "";
-  const C = promptsToDescription(
-    (behaviour.positivePrompts || []).join(" | "),
-    (behaviour.negativePrompts || []).join(" | ")
-  );
+  const segmentReplies = behaviour.replies === "none" ? " without replies" : "";
 
-  return A + B + C;
+  const positivePromptJoined = (behaviour.positivePrompts || []).join(" | ");
+  const negativePromptJoined = (behaviour.negativePrompts || []).join(" | ");
+  const segmentPrompt =
+    positivePromptJoined.trim() && negativePromptJoined.trim()
+      ? `, showing more "${positivePromptJoined.trim()}" and less "${negativePromptJoined.trim()}"`
+      : negativePromptJoined.trim()
+      ? `, filtering out "${negativePromptJoined.trim()}"`
+      : positivePromptJoined.trim()
+      ? `, showing more "${positivePromptJoined.trim()}"`
+      : "";
+
+  return segmentBase + segmentReplies + segmentPrompt;
 }
 function getDefaultTimelineConfigs(
   language: LanguageType

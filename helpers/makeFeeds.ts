@@ -227,6 +227,13 @@ function max(array: number[]): number {
 }
 
 const DEFAULT_PROMPT = ["says"];
+export const DEFAULT_BEHAVIOUR: TimelineConfigType["behaviour"] = {
+  baseFeed: "following",
+  mutualsOnly: false,
+  replies: "all",
+  sorting: "combo",
+  minimumScore: 0,
+};
 export function makePrincipledFeed(
   identity: TimelineConfigType["identity"],
   behaviour: TimelineConfigType["behaviour"]
