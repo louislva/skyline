@@ -105,7 +105,7 @@ export default function App({
   ).current;
 
   // Auth stuff
-  const { egoHandle, setLoginResponseData } = useAuthorization(agent);
+  const { egoHandle, egoDid, setLoginResponseData } = useAuthorization(agent);
 
   // Styling for body
   useBodyClassName("bg-slate-50 dark:bg-slate-900");
@@ -173,10 +173,14 @@ export default function App({
               setEditingCustomAITimelineId={setEditingCustomAITimelineId}
             />
             <Component
+              // React stuff
               {...pageProps}
               key={router.asPath}
+              // Bsky stuff
               egoHandle={egoHandle}
+              egoDid={egoDid}
               agent={agent}
+              // Skyline stuff
               customTimelineConfigs={customTimelineConfigs}
               language={language}
               timelineId={timelineId}

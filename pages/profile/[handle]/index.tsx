@@ -96,9 +96,10 @@ function RichTextReact(props: { agent: BskyAgent; text: string }) {
 export type ProfileScreenProps = {
   agent: BskyAgent;
   egoHandle: string;
+  egoDid: string;
 };
 export default function ProfileScreen(props: ProfileScreenProps) {
-  const { agent, egoHandle } = props;
+  const { agent, egoHandle, egoDid } = props;
   const router = useRouter();
   const handle = router.query.handle as string;
 
@@ -196,43 +197,46 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   )}
                 </h6>
               </div>
-              <button
-                className={
-                  "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
-                  (isFollowing
-                    ? "bg-slate-200 dark:bg-slate-700 text-white " + BORDER_300
-                    : "bg-blue-500 text-white ") +
-                  (postingFollow ? "opacity-50" : "")
-                }
-                onClick={() => {
-                  if (!postingFollow) {
-                    if (isFollowing) {
-                      setPostingFollow(true);
-                      agent
-                        .deleteFollow(isFollowing)
-                        .then(() => {
-                          setIsFollowing(false);
-                          setPostingFollow(false);
-                        })
-                        .catch(() => setPostingFollow(false));
-                    } else {
-                      setPostingFollow(true);
-                      agent
-                        .follow(profile.did)
-                        .then((result) => {
-                          setIsFollowing(result.uri);
-                          setPostingFollow(false);
-                        })
-                        .catch(() => setPostingFollow(false));
-                    }
+              {profile.did !== egoDid && (
+                <button
+                  className={
+                    "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
+                    (isFollowing
+                      ? "bg-slate-200 dark:bg-slate-700 text-white " +
+                        BORDER_300
+                      : "bg-blue-500 text-white ") +
+                    (postingFollow ? "opacity-50" : "")
                   }
-                }}
-              >
-                <span className="material-icons text-xl mr-1">
-                  {isFollowing ? "check" : "add"}
-                </span>
-                {isFollowing ? "Following" : "Follow"}
-              </button>
+                  onClick={() => {
+                    if (!postingFollow) {
+                      if (isFollowing) {
+                        setPostingFollow(true);
+                        agent
+                          .deleteFollow(isFollowing)
+                          .then(() => {
+                            setIsFollowing(false);
+                            setPostingFollow(false);
+                          })
+                          .catch(() => setPostingFollow(false));
+                      } else {
+                        setPostingFollow(true);
+                        agent
+                          .follow(profile.did)
+                          .then((result) => {
+                            setIsFollowing(result.uri);
+                            setPostingFollow(false);
+                          })
+                          .catch(() => setPostingFollow(false));
+                      }
+                    }
+                  }}
+                >
+                  <span className="material-icons text-xl mr-1">
+                    {isFollowing ? "check" : "add"}
+                  </span>
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              )}
             </div>
             <div className="flex flex-row mb-1">
               <Stat count={profile.followersCount || 0} label="followers" />
