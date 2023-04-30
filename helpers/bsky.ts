@@ -160,6 +160,53 @@ export async function mergeConversationsContinual(
   }
   callback(newPosts);
 }
+// A version that doesn't fetch posts
+function flattenSkylinePostsThreads(post: SkylinePostType): SkylinePostType[] {
+  if (!post.replyingTo) return [post];
+  else {
+    return post.replyingTo
+      .flatMap((item) => flattenSkylinePostsThreads(item))
+      .concat([post]);
+  }
+}
+
+export function mergeConversationsInstant(
+  posts_: SkylinePostType[]
+): SkylinePostType[] {
+  let posts: SkylinePostType[] = JSON.parse(JSON.stringify(posts_));
+
+  // Chain everything
+  posts.forEach(async (post) => {
+    const record = post.postView.record as RecordType;
+    if (record.reply) {
+      post.replyingTo = post.replyingTo || [];
+      const postReplyingTo = posts.find(
+        (p) => p.postView.cid === record.reply?.parent.cid
+      );
+      if (postReplyingTo) post.replyingTo.push(postReplyingTo);
+    }
+    return;
+  });
+
+  // Now, flatten
+  posts = posts.map((post) => ({
+    ...post,
+    replyingTo: post.replyingTo?.flatMap((item) => {
+      return flattenSkylinePostsThreads(item);
+    }),
+  }));
+
+  // Then, remove all replyingTo posts from the root
+  posts.forEach((post) => {
+    post.replyingTo?.forEach((replyingToPost) => {
+      posts = posts.filter(
+        (p) => p.postView.cid !== replyingToPost.postView.cid
+      );
+    });
+  });
+
+  return posts;
+}
 
 export type LoginResponseDataType = {
   accessJwt: string;

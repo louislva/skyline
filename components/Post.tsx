@@ -11,8 +11,9 @@ export default function Post(props: {
   post: SkylinePostType;
   hasChildren?: boolean;
   isLastPost?: boolean;
+  isSub?: boolean;
 }) {
-  const { agent, post, hasChildren, isLastPost } = props;
+  const { agent, post, hasChildren, isLastPost, isSub } = props;
   const author = post.postView.author;
   const embed:
     | {
@@ -62,6 +63,7 @@ export default function Post(props: {
           agent={agent}
           post={reply}
           hasChildren
+          isSub
         />
       ))}
       {replyPosts.length > 2 && (
@@ -82,6 +84,7 @@ export default function Post(props: {
               agent={agent}
               post={reply}
               hasChildren
+              isSub
             />
           ))}
       <Link href={bskyLink} target="_blank">
@@ -98,7 +101,9 @@ export default function Post(props: {
             <div
               className={
                 "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-                (record.reply ? "border-t border-dashed " + BORDER_300 : "")
+                (record.reply && (replyPosts.length || isSub)
+                  ? "border-t border-dashed " + BORDER_300
+                  : "")
               }
             >
               {record.reply && (

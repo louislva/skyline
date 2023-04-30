@@ -1,3 +1,6 @@
+import Post from "@/components/Post";
+import { mergeConversationsInstant } from "@/helpers/bsky";
+import { ExpandedPostView, SkylinePostType } from "@/helpers/contentTypes";
 import { BORDER_200, BORDER_300 } from "@/helpers/styling";
 import { BskyAgent, RichText } from "@atproto/api";
 import { ProfileViewDetailed } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
@@ -55,18 +58,16 @@ export default function ProfileScreen(props: ProfileScreenProps) {
   console.log(handle);
 
   const [profile, setProfile] = useState<ProfileViewDetailed | null>(null);
-  const [posts, setPosts] = useState<FeedViewPost[]>([]);
+  const [posts_, setPosts] = useState<SkylinePostType[]>([]);
+  const posts = mergeConversationsInstant(posts_);
   const [postsCursor, setPostsCursor] = useState<string | undefined>();
 
   const loadProfile = async () => {
-    if (loading) return;
     if (handle) {
-      setLoading(true);
       const result = await agent.getProfile({
-        actor: "louis02x.com",
+        actor: handle,
       });
       setProfile(result.data);
-      setLoading(false);
     }
   };
 
@@ -79,13 +80,20 @@ export default function ProfileScreen(props: ProfileScreenProps) {
         cursor: postsCursor,
       });
       setPostsCursor(result.data.cursor);
-      setPosts(posts.concat(result.data.feed));
+      setPosts(
+        posts.concat(
+          result.data.feed.map((post) => ({
+            postView: post.post as ExpandedPostView,
+          }))
+        )
+      );
       setLoading(false);
     }
   };
 
   useEffect(() => {
     loadProfile();
+    loadPosts();
   }, [handle]);
 
   const views = [
@@ -113,7 +121,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
               backgroundSize: "cover",
             }}
           />
-          <div className={"flex flex-col px-2 border-b-2 mb-8 " + BORDER_200}>
+          <div className={"flex flex-col px-2 border-b-2 " + BORDER_200}>
             <div className="w-20 h-20 bg-white dark:bg-black rounded-full -mt-12 p-0.5">
               <img
                 src={profile.avatar}
@@ -152,6 +160,20 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                 );
               })}
             </div>
+          </div>
+          <div>
+            {posts
+              .filter((post) => {
+                if (selectedView === "replies") return true;
+                else
+                  return (
+                    !post.postView.record.reply ||
+                    post.replyingTo?.[0]?.postView.author.handle === handle
+                  );
+              })
+              .map((post) => (
+                <Post agent={agent} post={post} />
+              ))}
           </div>
         </>
       )}
