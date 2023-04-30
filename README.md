@@ -82,7 +82,11 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Notifications
   - [ ] Links in Tweets
   - [ ] Click images to see expanded
+  - [ ] "Interactions" tab on profiles
 - [ ] Project "Search" (We should have at least as advanced search as Twitter!)
+  - [ ] Capture every tweet via Firehose (similar to https://github.com/ericvolp12/bsky-experiments) & put them in Postgres
+  - [ ] Allow user to query by text, date published, and author
+  - [ ] Register every post the user has seen & allow searching for only posts they've seen before
 - [ ] Project "Social Audio"
   - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
 - [ ] Project "DMs"
