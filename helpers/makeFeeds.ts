@@ -33,7 +33,7 @@ export type TimelineConfigType = {
     baseFeed?: "following" | "popular" | "one-from-each";
     mutualsOnly?: boolean;
     language?: LanguageType;
-    replies?: "all" | "following" | "none";
+    replies?: "all" | "none";
     positivePrompts?: string[];
     negativePrompts?: string[];
     sorting?: "score" | "time" | "combo";
@@ -223,7 +223,7 @@ function average(array: number[]): number {
   return array.reduce((a, b) => a + b, 0) / array.length;
 }
 function max(array: number[]): number {
-  return array.reduce((a, b) => Math.max(a, b));
+  return Math.max(...array);
 }
 
 const DEFAULT_PROMPT = ["says"];
@@ -243,6 +243,12 @@ export function makePrincipledFeed(
   } = behaviour;
 
   const useLLM = positivePrompts?.length || negativePrompts?.length;
+  const actualPositivePrompts: string[] = positivePrompts?.length
+    ? positivePrompts
+    : DEFAULT_PROMPT;
+  const actualNegativePrompts: string[] = negativePrompts?.length
+    ? negativePrompts
+    : DEFAULT_PROMPT;
 
   return {
     ...identity,
@@ -253,44 +259,11 @@ export function makePrincipledFeed(
       if (mutualsOnly) mutualsPromise = getMutuals(agent, egoHandle);
 
       // Load base feed
-
       let { posts, cursor: newCursor } = ["following", "popular"].includes(
         baseFeed
       )
         ? await loadBaseFeed(baseFeed as "following" | "popular", agent, cursor)
         : await loadOneFromEachFeed(agent, egoHandle, cursor);
-
-      // Load LLM scoring
-      let positivePromptEmbeddings: number[][] = [];
-      let negativePromptEmbeddings: number[][] = [];
-      if (useLLM) {
-        const embeddingsResponse = await fetch("/api/embeddings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text: postsToText(posts)
-              .concat(positivePrompts || DEFAULT_PROMPT)
-              .concat(negativePrompts || DEFAULT_PROMPT),
-          }),
-        });
-        const embeddings: number[][] = await embeddingsResponse.json();
-
-        posts = posts.map((post, index) => {
-          return { ...post, embedding: embeddings[index] };
-        }) as SkylinePostType[];
-        positivePromptEmbeddings = embeddings.slice(
-          posts.length,
-          posts.length + (positivePrompts || DEFAULT_PROMPT).length
-        );
-        negativePromptEmbeddings = embeddings.slice(
-          posts.length + (positivePrompts || DEFAULT_PROMPT).length,
-          posts.length +
-            (positivePrompts || DEFAULT_PROMPT).length +
-            (negativePrompts || DEFAULT_PROMPT).length
-        );
-      }
 
       // 2. FILTERING
       // mutualsOnly
@@ -303,9 +276,7 @@ export function makePrincipledFeed(
       }
 
       // replies
-      if (replies === "following") {
-        // TODO: this might need to be handled in defaultPostProcessFeed, since we don't yet know who the reply is to
-      } else if (replies === "none") {
+      if (replies === "none") {
         posts = posts.filter((item) => !item.postView.record.reply);
       } else {
         // Do nothing
@@ -318,8 +289,38 @@ export function makePrincipledFeed(
         );
       }
 
-      // 3. SORTING
+      // 3. LLM SORTING
       if (useLLM) {
+        // Load LLM scoring
+        let positivePromptEmbeddings: number[][] = [];
+        let negativePromptEmbeddings: number[][] = [];
+        const embeddingsResponse = await fetch("/api/embeddings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: postsToText(posts)
+              .concat(actualPositivePrompts)
+              .concat(actualNegativePrompts),
+          }),
+        });
+        const embeddings: number[][] = await embeddingsResponse.json();
+
+        posts = posts.map((post, index) => {
+          return { ...post, embedding: embeddings[index] };
+        }) as SkylinePostType[];
+        positivePromptEmbeddings = embeddings.slice(
+          posts.length,
+          posts.length + actualPositivePrompts.length
+        );
+        negativePromptEmbeddings = embeddings.slice(
+          posts.length + actualPositivePrompts.length,
+          posts.length +
+            actualPositivePrompts.length +
+            actualNegativePrompts.length
+        );
+
         // score by LLM embedding
         posts = posts.map((post) => {
           const positiveScore = max(

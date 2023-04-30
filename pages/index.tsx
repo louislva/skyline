@@ -14,6 +14,9 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const INPUT_CLASSNAME =
+  "border outline-none dark:bg-slate-700 bg-slate-200 border-slate-300 dark:border-slate-700";
+
 // TIMELINES
 export type TimelineIdType = string;
 export type TimelineDefinitionsType = {
@@ -241,7 +244,7 @@ function Header(props: { logout?: () => void }) {
         <div className="flex-1 flex flex-row justify-end items-center">
           {logout && (
             <button
-              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center ml-4 mr-0 sm:mr-3 text-slate-800 bg-white border-gray-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none"
+              className="text-base border py-2 px-4 rounded-lg flex flex-row items-center ml-4 mr-0 sm:mr-3 text-slate-800 bg-white border-slate-300 dark:text-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none"
               onClick={() => logout()}
             >
               <span className="material-icons mr-2">logout</span>
@@ -474,6 +477,84 @@ function ShareTimelineButton(props: {
     </button>
   );
 }
+
+function PromptsList(props: {
+  placeholder: string;
+  prompts: string[];
+  setPrompts: (prompts: string[]) => void;
+}) {
+  const { placeholder, prompts, setPrompts } = props;
+  return (
+    <>
+      {prompts.map((prompt, index) => (
+        <div className="flex flex-row items-center">
+          <input
+            type="text"
+            placeholder={placeholder}
+            className={"h-10 flex-1 rounded-md p-2 " + INPUT_CLASSNAME}
+            value={prompt}
+            onChange={(e) => {
+              setPrompts(
+                prompts
+                  .slice(0, index)
+                  .concat([e.target.value])
+                  .concat(prompts.slice(index + 1))
+              );
+            }}
+          />
+          {index === prompts.length - 1 ? (
+            <button
+              className="h-8 w-8 ml-2 rounded-md bg-green-500 material-icons text-xl text-black unselectable"
+              onClick={() => setPrompts([...prompts, ""])}
+            >
+              add
+            </button>
+          ) : (
+            <button
+              className="h-8 w-8 ml-2 rounded-md bg-red-500 material-icons text-xl text-black unselectable"
+              onClick={() => {
+                setPrompts(
+                  prompts.slice(0, index).concat(prompts.slice(index + 1))
+                );
+              }}
+            >
+              remove
+            </button>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+function HorizontalSelector<T>(props: {
+  value: T;
+  setValue: (value: T) => void;
+  options: [string, T][];
+}) {
+  const { value, setValue, options } = props;
+
+  return (
+    <div className="flex flex-row h-10 rounded-md overflow-hidden">
+      {options.map(([label, id], index) => {
+        const selected = id === value;
+        return (
+          <button
+            className={
+              "outline-none p-2 flex-1 text-center border-slate-300 dark:border-slate-600 " +
+              (index !== 0 ? "border-l " : "") +
+              (selected
+                ? "dark:bg-slate-600 bg-slate-300"
+                : "dark:bg-slate-700 bg-slate-200")
+            }
+            onClick={() => setValue(id)}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 function ConfigureTimelineModal(props: {
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
@@ -486,24 +567,47 @@ function ConfigureTimelineModal(props: {
     close,
     editingCustomAITimelineId,
   } = props;
-  const editingCustomAITimeline = editingCustomAITimelineId
-    ? customTimelineConfigs[editingCustomAITimelineId]
-    : null;
-  const [name, setName] = useState(
-    editingCustomAITimeline?.identity?.name || ""
+  const [config, setConfig] = useState<TimelineConfigType>(
+    editingCustomAITimelineId
+      ? customTimelineConfigs[editingCustomAITimelineId]
+      : {
+          meta: {
+            origin: "self",
+            createdOn: Date.now(),
+            modifiedOn: Date.now(),
+          },
+          identity: {
+            name: "",
+            description: "",
+            icon: "bolt",
+          },
+          behaviour: {
+            baseFeed: "following",
+            mutualsOnly: false,
+            negativePrompts: [],
+            positivePrompts: [],
+            replies: "all",
+            sorting: "combo",
+          },
+        }
   );
-  const [positivePrompt, setPositivePrompt] = useState(
-    editingCustomAITimeline?.behaviour?.positivePrompts?.[0] || ""
+
+  const [positivePrompts, setPositivePrompts] = useState<string[]>(
+    config.behaviour.positivePrompts?.length
+      ? config.behaviour.positivePrompts
+      : [""]
   );
-  const [negativePrompt, setNegativePrompt] = useState(
-    editingCustomAITimeline?.behaviour?.negativePrompts?.[0] || ""
+  const [negativePrompts, setNegativePrompts] = useState<string[]>(
+    config.behaviour.negativePrompts?.length
+      ? config.behaviour.negativePrompts
+      : [""]
   );
 
   return (
     <Modal close={close}>
       <div className="text-xl font-bold mb-4">
-        {editingCustomAITimeline
-          ? `Edit "${editingCustomAITimeline?.identity?.name}" timeline`
+        {editingCustomAITimelineId
+          ? `Edit "${config?.identity?.name}" timeline`
           : "Create a timeline"}
       </div>
       <div className="flex flex-col gap-2">
@@ -511,68 +615,130 @@ function ConfigureTimelineModal(props: {
         <input
           type="text"
           placeholder="Wholesome TL"
-          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 w-1/2 text-black"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          className={"rounded-md p-2 w-1/2 " + INPUT_CLASSNAME}
+          value={config.identity.name}
+          onChange={(e) =>
+            setConfig({
+              ...config,
+              identity: { ...config.identity, name: e.target.value },
+            })
+          }
         />
-        <label className="flex flex-row items-center">
+        <label className="mt-2">Base feed</label>
+        <HorizontalSelector<"following" | "mutuals" | "popular">
+          value={
+            config.behaviour.mutualsOnly
+              ? "mutuals"
+              : (config.behaviour.baseFeed as "following" | "popular")
+          }
+          setValue={(value) => {
+            setConfig({
+              ...config,
+              behaviour: {
+                ...config.behaviour,
+                baseFeed: value === "mutuals" ? "following" : value,
+                mutualsOnly: value === "mutuals",
+              },
+            });
+          }}
+          options={[
+            ["Following", "following"],
+            ["Mutuals", "mutuals"],
+            ["What's Hot", "popular"],
+          ]}
+        />
+        <HorizontalSelector<"all" | "none">
+          value={config.behaviour.replies || "all"}
+          setValue={(value) =>
+            setConfig({
+              ...config,
+              behaviour: { ...config.behaviour, replies: value },
+            })
+          }
+          options={[
+            ["Show replies", "all"],
+            ["Hide replies", "none"],
+          ]}
+        />
+        <label className="flex flex-row items-center mt-2">
           I want to see more of...
           <span className="material-icons text-green-600 ml-1">thumb_up</span>
         </label>
-        <input
-          type="text"
+        <PromptsList
           placeholder="Wholesome tweets, kindness, love, fun banter"
-          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
-          value={positivePrompt}
-          onChange={(e) => setPositivePrompt(e.target.value)}
+          prompts={positivePrompts}
+          setPrompts={setPositivePrompts}
         />
-        <label className="flex flex-row items-center">
+        <label className="flex flex-row items-center mt-2">
           I want to see less of...
           <span className="material-icons text-red-600 ml-1">thumb_down</span>
         </label>
-        <input
-          type="text"
+        <PromptsList
           placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
-          className="border border-gray-300 dark:border-slate-700 rounded-md p-2 text-black"
-          value={negativePrompt}
-          onChange={(e) => setNegativePrompt(e.target.value)}
+          prompts={negativePrompts}
+          setPrompts={setNegativePrompts}
+        />
+        <label className="mt-2">
+          Sorting
+          <p className="dark:text-slate-400">
+            The AI will assign a match % from -100% to +100% to each post.
+            Everything less than 0% will be removed. Choose how to sort the
+            remaining posts.
+          </p>
+        </label>
+        <HorizontalSelector<TimelineConfigType["behaviour"]["sorting"]>
+          value={config.behaviour.sorting}
+          setValue={(value) =>
+            setConfig({
+              ...config,
+              behaviour: { ...config.behaviour, sorting: value },
+            })
+          }
+          options={[
+            ["Latest", "time"],
+            ["Best match %", "score"],
+            ["Combo", "combo"],
+          ]}
         />
         <button
           className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto outline-none"
           onClick={() => {
+            const filteredPositivePrompts = positivePrompts.filter(
+              (item) => !!item.trim()
+            );
+            const filteredNegativePrompts = negativePrompts.filter(
+              (item) => !!item.trim()
+            );
+
+            const behaviour = {
+              ...config.behaviour,
+              positivePrompts: filteredPositivePrompts.length
+                ? filteredPositivePrompts
+                : undefined,
+              negativePrompts: filteredNegativePrompts.length
+                ? filteredNegativePrompts
+                : undefined,
+            };
+
             setCustomTimelineConfigs({
               ...customTimelineConfigs,
               [editingCustomAITimelineId || Date.now().toString()]: {
                 meta: {
-                  origin: "self",
-                  createdOn: Date.now(),
-                  ...(editingCustomAITimeline?.meta || {}),
+                  ...config.meta,
                   modifiedOn: Date.now(),
                 },
                 identity: {
-                  ...(editingCustomAITimeline?.identity || {}),
-                  name: name.trim(),
-                  description: promptsToDescription(
-                    positivePrompt,
-                    negativePrompt
-                  ),
-                  icon: "bolt",
+                  ...config.identity,
+                  name: config.identity.name.trim(),
+                  description: behaviourToDescription(behaviour),
                 },
-                behaviour: {
-                  ...(editingCustomAITimeline?.behaviour || {}),
-                  positivePrompts: positivePrompt
-                    ? [positivePrompt.trim()]
-                    : undefined,
-                  negativePrompts: negativePrompt
-                    ? [negativePrompt.trim()]
-                    : undefined,
-                },
+                behaviour,
               },
             });
             close();
           }}
         >
-          {editingCustomAITimeline ? "Save" : "Create"}
+          {editingCustomAITimelineId ? "Save" : "Create"}
         </button>
       </div>
     </Modal>
@@ -634,14 +800,14 @@ function LoginScreen(props: {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
+          className="border border-slate-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border border-gray-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
+          className="border border-slate-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
         />
         <button
           type="submit"
@@ -735,12 +901,29 @@ function convertOldCustomToNewConfig(
   };
 }
 function promptsToDescription(positivePrompt: string, negativePrompt: string) {
-  return (positivePrompt.trim() && negativePrompt.trim()) ||
-    (!positivePrompt.trim() && !negativePrompt.trim())
-    ? `Custom timeline, created to show more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
+  return positivePrompt.trim() && negativePrompt.trim()
+    ? `, showing more "${positivePrompt.trim()}" and less "${negativePrompt.trim()}"`
     : negativePrompt.trim()
-    ? `Custom timeline, created not to show "${negativePrompt.trim()}"`
-    : `Custom timeline, created to show more "${positivePrompt.trim()}"`;
+    ? `, filtering out "${negativePrompt.trim()}"`
+    : positivePrompt.trim()
+    ? `, showing more "${positivePrompt.trim()}"`
+    : "";
+}
+function behaviourToDescription(
+  behaviour: TimelineConfigType["behaviour"]
+): string {
+  const A = behaviour.mutualsOnly
+    ? "Mutuals feed"
+    : behaviour.baseFeed === "popular"
+    ? "What's Hot feed"
+    : "Following feed";
+  const B = behaviour.replies === "none" ? " without replies" : "";
+  const C = promptsToDescription(
+    (behaviour.positivePrompts || []).join(" | "),
+    (behaviour.negativePrompts || []).join(" | ")
+  );
+
+  return A + B + C;
 }
 function getDefaultTimelineConfigs(
   language: LanguageType

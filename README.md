@@ -58,15 +58,14 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Reddit-like scoring algo: recency \* quality, with a minimum threshold to appear
   - [x] <u>Infinite feeds - query with the next cursor</u>
   - [x] Unify custom-timeline & built-in timeline concept
-  - [ ] Control every parameter for a feed
-  - [ ] Automatic infinite feeds - when you're 6 posts away from bottom, load more
-  - [ ] Custom feed settings:
-    - [ ] Base: What's Hot / Mutuals / Following
+  - [x] Custom feed settings:
+    - [x] Base: What's Hot / Mutuals / Following
+    - [x] Sorting: Best / Combo / Recent
+    - [x] Show replies: Yes / No
+    - [x] Multiple prompts
     - [ ] Language filter: english / portuguese / japanese / farsi
-    - [ ] Multiple prompts
     - [ ] Muted keywords
-    - [ ] Sorting: Best / Combo / Recent
-    - [ ] Show replies: Yes / All Followed / No
+  - [ ] Automatic infinite feeds - when you're 6 posts away from bottom, load more
 - [x] Project "Nice"
   - [x] Sticky timeline selection
   - [x] Dark mode
