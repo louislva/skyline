@@ -9,7 +9,13 @@ export default async function handler(req: any, res: any) {
   let text: string[] = req.body.text;
   const response = await openai.createEmbedding({
     model: "text-embedding-ada-002",
-    input: text,
+    input: text.map((item) => {
+      if (item.length > 1000) {
+        return item.slice(0, 500) + "\n\n...\n\n" + item.slice(-500);
+      } else {
+        return item;
+      }
+    }),
   });
 
   if (response.status === 200) {
