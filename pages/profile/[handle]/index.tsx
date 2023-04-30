@@ -54,13 +54,22 @@ export default function ProfileScreen(props: ProfileScreenProps) {
   const router = useRouter();
   const handle = router.query.handle as string;
 
+  const views = [
+    ["posts", "Posts"],
+    ["replies", "Posts & Replies"],
+    ["media", "Media"],
+    // ["likes", "Likes"],
+  ];
+  const [selectedView, setSelectedView] = useState<string>("posts");
+
   const [loading, setLoading] = useState(false);
   console.log(handle);
 
   const [profile, setProfile] = useState<ProfileViewDetailed | null>(null);
   const [isFollowing, setIsFollowing] = useState<string | false | null>(null);
   const [posts_, setPosts] = useState<SkylinePostType[]>([]);
-  const posts = mergeConversationsInstant(posts_);
+  const posts =
+    selectedView === "media" ? posts_ : mergeConversationsInstant(posts_);
   const [postsCursor, setPostsCursor] = useState<string | undefined>();
 
   const loadProfile = async () => {
@@ -97,14 +106,6 @@ export default function ProfileScreen(props: ProfileScreenProps) {
     loadProfile();
     loadPosts();
   }, [handle]);
-
-  const views = [
-    ["posts", "Posts"],
-    ["replies", "Posts & Replies"],
-    // ["media", "Media"],
-    // ["likes", "Likes"],
-  ];
-  const [selectedView, setSelectedView] = useState<string>("posts");
 
   const [postingFollow, setPostingFollow] = useState<boolean>(false);
 
@@ -210,7 +211,9 @@ export default function ProfileScreen(props: ProfileScreenProps) {
             {posts
               .filter((post) => {
                 if (selectedView === "replies") return true;
-                else
+                else if (selectedView === "media")
+                  return post.postView.embed?.images;
+                else if (selectedView === "posts")
                   return (
                     !post.postView.record.reply ||
                     post.replyingTo?.[0]?.postView.author.handle === handle
