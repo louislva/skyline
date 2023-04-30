@@ -23,6 +23,7 @@ import { BskyAgent } from "@atproto/api";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
+import ProfileScreen from "./profile/[handle]";
 import TweetComposer from "@/components/TweetComposer";
 
 // SINGLE-USE HOOKS
@@ -91,7 +92,7 @@ export default function App({
   Component,
   pageProps,
 }: {
-  Component: typeof TimelineScreen;
+  Component: typeof TimelineScreen | typeof ProfileScreen;
   pageProps: AppProps["pageProps"];
 }) {
   useFirefoxPolyfill();
