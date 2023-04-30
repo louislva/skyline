@@ -40,6 +40,9 @@ export type TimelineConfigType = {
     minimumScore?: number;
   };
 };
+export type TimelineConfigsType = {
+  [id: string]: TimelineConfigType;
+};
 
 // OUTPUT:
 export type ProduceFeedOutput = {

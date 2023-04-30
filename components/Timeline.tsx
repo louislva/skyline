@@ -1,5 +1,5 @@
 import { ProduceFeedOutput } from "@/helpers/makeFeeds";
-import { TimelineDefinitionsType, TimelineIdType } from "@/pages";
+import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { BskyAgent } from "@atproto/api";
 import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
