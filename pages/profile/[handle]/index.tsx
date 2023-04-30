@@ -58,6 +58,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
   console.log(handle);
 
   const [profile, setProfile] = useState<ProfileViewDetailed | null>(null);
+  const [isFollowing, setIsFollowing] = useState<string | false | null>(null);
   const [posts_, setPosts] = useState<SkylinePostType[]>([]);
   const posts = mergeConversationsInstant(posts_);
   const [postsCursor, setPostsCursor] = useState<string | undefined>();
@@ -68,6 +69,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
         actor: handle,
       });
       setProfile(result.data);
+      setIsFollowing(result.data.viewer?.following || false);
     }
   };
 
@@ -104,6 +106,8 @@ export default function ProfileScreen(props: ProfileScreenProps) {
   ];
   const [selectedView, setSelectedView] = useState<string>("posts");
 
+  const [postingFollow, setPostingFollow] = useState<boolean>(false);
+
   return (
     <div
       className={
@@ -122,16 +126,57 @@ export default function ProfileScreen(props: ProfileScreenProps) {
             }}
           />
           <div className={"flex flex-col px-2 border-b-2 " + BORDER_200}>
-            <div className="w-20 h-20 bg-white dark:bg-black rounded-full -mt-12 p-0.5">
-              <img
-                src={profile.avatar}
-                className="w-full h-full rounded-full"
-              />
+            <div className="flex flex-row">
+              <div className="flex flex-col flex-1">
+                <div className="w-20 h-20 bg-white dark:bg-black rounded-full -mt-12 p-0.5">
+                  <img
+                    src={profile.avatar}
+                    className="w-full h-full rounded-full"
+                  />
+                </div>
+                <h3 className="text-2xl">{profile.displayName}</h3>
+                <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2">
+                  @{profile.handle}
+                </h6>
+              </div>
+              <button
+                className={
+                  "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
+                  (isFollowing
+                    ? "bg-slate-200 dark:bg-slate-700 text-white " + BORDER_300
+                    : "bg-blue-500 text-white ") +
+                  (postingFollow ? "opacity-50" : "")
+                }
+                onClick={() => {
+                  if (!postingFollow) {
+                    if (isFollowing) {
+                      setPostingFollow(true);
+                      agent
+                        .deleteFollow(isFollowing)
+                        .then(() => {
+                          setIsFollowing(false);
+                          setPostingFollow(false);
+                        })
+                        .catch(() => setPostingFollow(false));
+                    } else {
+                      setPostingFollow(true);
+                      agent
+                        .follow(profile.did)
+                        .then((result) => {
+                          setIsFollowing(result.uri);
+                          setPostingFollow(false);
+                        })
+                        .catch(() => setPostingFollow(false));
+                    }
+                  }
+                }}
+              >
+                <span className="material-icons text-xl mr-1">
+                  {isFollowing ? "check" : "add"}
+                </span>
+                {isFollowing ? "Following" : "Follow"}
+              </button>
             </div>
-            <h3 className="text-2xl">{profile.displayName}</h3>
-            <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2">
-              @{profile.handle}
-            </h6>
             <div className="flex flex-row mb-1">
               <Stat count={profile.followersCount || 0} label="followers" />
               <Stat count={profile.followsCount || 0} label="following" />
