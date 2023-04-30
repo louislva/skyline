@@ -140,6 +140,8 @@ export default function App({
     string | null
   >(null);
 
+  const router = useRouter();
+
   return (
     <>
       <Head>
@@ -172,6 +174,7 @@ export default function App({
             />
             <Component
               {...pageProps}
+              key={router.asPath}
               egoHandle={egoHandle}
               agent={agent}
               customTimelineConfigs={customTimelineConfigs}

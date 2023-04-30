@@ -1,9 +1,12 @@
 import { BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-import { ExpandedPostView, RecordType, SkylinePostType } from "./contentTypes";
-import { ThreadViewPost } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import {
+  FeedViewPost,
+  ThreadViewPost,
+} from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import { Response as GetPostThreadResponse } from "@atproto/api/dist/client/types/app/bsky/feed/getPostThread";
 import Cache from "./cache";
+import { ExpandedPostView, RecordType, SkylinePostType } from "./contentTypes";
 
 let followsCache: ProfileView[] | null = null;
 let followersCache: ProfileView[] | null = null;
@@ -215,3 +218,13 @@ export type LoginResponseDataType = {
   handle: string;
   refreshJwt: string;
 };
+
+export function feedViewPostToSkylinePost(item: FeedViewPost): SkylinePostType {
+  return {
+    postView: item.post as ExpandedPostView,
+    repostBy:
+      item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
+        ? (item.reason.by as ProfileView)
+        : undefined,
+  };
+}

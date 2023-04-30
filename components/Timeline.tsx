@@ -1,10 +1,10 @@
 import { ProduceFeedOutput } from "@/helpers/makeFeeds";
+import { BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { BskyAgent } from "@atproto/api";
 import { useEffect, useMemo, useState } from "react";
-import LoadingSpinner from "./LoadingSpinner";
+import LoadingSpinner, { LoadingPlaceholder } from "./LoadingSpinner";
 import Post from "./Post";
-import { BORDER_300 } from "@/helpers/styling";
 
 export default function Timeline(props: {
   agent: BskyAgent;
@@ -183,13 +183,7 @@ export default function Timeline(props: {
           </button>
         </>
       ) : loading ? (
-        <div className="flex flex-row justify-center items-center text-3xl py-32">
-          <LoadingSpinner
-            containerClassName="w-12 h-12 mr-4"
-            dotClassName="bg-slate-800 dark:bg-slate-400"
-          />
-          <div className="text-slate-800 dark:text-slate-400">Loading...</div>
-        </div>
+        <LoadingPlaceholder />
       ) : (
         <div className="flex flex-col justify-center items-center py-32 text-slate-800 dark:text-slate-400">
           <div className="material-icons text-4xl mb-2">

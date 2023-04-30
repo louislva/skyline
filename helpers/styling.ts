@@ -3,3 +3,4 @@ export const INPUT_CLASSNAME =
 
 export const BORDER_300 = " border-slate-300 dark:border-slate-600 ";
 export const BORDER_200 = " border-slate-200 dark:border-slate-700 ";
+export const LINK = " text-blue-500 ";

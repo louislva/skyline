@@ -1,4 +1,5 @@
 import { BORDER_300 } from "@/helpers/styling";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Header(props: { logout?: (() => void) | null }) {
@@ -18,7 +19,7 @@ export default function Header(props: { logout?: (() => void) | null }) {
       <div className="w-full flex flex-row items-center justify-center">
         <div className="sm:flex-1"></div>
         <div className="flex flex-col items-start sm:items-center py-4">
-          <div className="text-xl font-light">
+          <Link href="/" className="text-xl font-light">
             {/* spells skyline.gay in pride flag colors */}
             <span className="text-red-500">s</span>
             <span className="text-orange-500">k</span>
@@ -27,7 +28,7 @@ export default function Header(props: { logout?: (() => void) | null }) {
             <span className="text-blue-500">i</span>
             <span className="text-purple-500">n</span>
             <span className="text-pink-500">e</span>
-          </div>
+          </Link>
           <div className="text-sm font-light text-slate-900 dark:text-slate-300">
             {subheader}
           </div>

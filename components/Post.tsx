@@ -135,7 +135,11 @@ export default function Post(props: {
           )}
 
           {/* Profile row */}
-          <div className="flex flex-row">
+        <div className="flex flex-row ">
+          <Link
+            href={`/profile/${author.handle}`}
+            className="flex flex-row hover:underline"
+          >
             {/* Pfp */}
             {author.avatar && (
               <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
@@ -152,6 +156,7 @@ export default function Post(props: {
                   : "@" + author.handle}
               </div>
             </div>
+          </Link>
             {/* timestamp */}
             <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
               {moment(post.postView.indexedAt).fromNow()}

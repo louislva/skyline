@@ -1,15 +1,16 @@
 import { BskyAgent } from "@atproto/api";
-import { ExpandedPostView, SkylinePostType } from "./contentTypes";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
+import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import {
+  feedViewPostToSkylinePost,
   getFollows,
   getMutuals,
   getThreadCacheOnly,
   mergeConversationsContinual,
   unrollThread,
 } from "./bsky";
-import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
+import { SkylinePostType } from "./contentTypes";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 // INPUT:
@@ -150,13 +151,7 @@ async function loadBaseFeed(
         });
 
   if (response.success) {
-    const posts = response.data.feed.map((item) => ({
-      postView: item.post as ExpandedPostView,
-      repostBy:
-        item.reason?.$type === "app.bsky.feed.defs#reasonRepost"
-          ? (item.reason.by as ProfileView)
-          : undefined,
-    }));
+    const posts = response.data.feed.map(feedViewPostToSkylinePost);
     return {
       posts,
       cursor: response.data.cursor,

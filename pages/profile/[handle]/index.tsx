@@ -1,17 +1,26 @@
+import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import Post from "@/components/Post";
-import { mergeConversationsInstant } from "@/helpers/bsky";
-import { ExpandedPostView, SkylinePostType } from "@/helpers/contentTypes";
-import { BORDER_200, BORDER_300 } from "@/helpers/styling";
+import {
+  feedViewPostToSkylinePost,
+  mergeConversationsInstant,
+} from "@/helpers/bsky";
+import { SkylinePostType } from "@/helpers/contentTypes";
+import { BORDER_200, BORDER_300, LINK } from "@/helpers/styling";
 import { BskyAgent, RichText } from "@atproto/api";
 import { ProfileViewDetailed } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-import { FeedViewPost } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
 
 function RichTextReact(props: { agent: BskyAgent; text: string }) {
   const { agent, text } = props;
-  const [markdown, setMarkdown] = useState(text);
+  const [segments, setSegments] = useState<
+    {
+      type: "text" | "link" | "mention";
+      text: string;
+      value?: string;
+    }[]
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -20,27 +29,66 @@ function RichTextReact(props: { agent: BskyAgent; text: string }) {
       });
       await rt.detectFacets(agent); // automatically detects mentions and links
 
-      let newMarkdown = "";
+      let newSegments: typeof segments = [];
 
       // @ts-expect-error
       for (const segment of rt.segments()) {
         if (segment.isLink()) {
-          newMarkdown += `[${segment.text}](${segment.link?.uri})`;
+          newSegments.push({
+            type: "link",
+            text: segment.text,
+            value: segment.link?.uri,
+          });
         } else if (segment.isMention()) {
-          newMarkdown += `[${segment.text}](${window?.location?.host}/profile/${segment.mention?.handle})`;
+          newSegments.push({
+            type: "mention",
+            text: segment.text,
+            value: segment.mention.did,
+          });
         } else {
-          newMarkdown += segment.text;
+          newSegments.push({
+            type: "text",
+            text: segment.text,
+          });
         }
       }
 
-      setMarkdown(newMarkdown);
+      setSegments(newSegments);
     })();
   }, [text]);
 
   return (
-    <ReactMarkdown className="prose prose-slate dark:prose-invert">
-      {markdown}
-    </ReactMarkdown>
+    <>
+      {segments.map((segment) => {
+        return (
+          <>
+            {segment.text.split("\n").map((line, index) => {
+              return (
+                <>
+                  {index !== 0 && <br />}
+                  {segment.type === "link" ? (
+                    <a
+                      href={segment.value}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={LINK}
+                    >
+                      {line}
+                    </a>
+                  ) : segment.type === "mention" ? (
+                    <Link href={`/profile/${segment.value}`} className={LINK}>
+                      {line}
+                    </Link>
+                  ) : (
+                    line
+                  )}
+                </>
+              );
+            })}
+          </>
+        );
+      })}
+    </>
   );
 }
 
@@ -91,13 +139,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
         cursor: postsCursor,
       });
       setPostsCursor(result.data.cursor);
-      setPosts(
-        posts.concat(
-          result.data.feed.map((post) => ({
-            postView: post.post as ExpandedPostView,
-          }))
-        )
-      );
+      setPosts(posts.concat(result.data.feed.map(feedViewPostToSkylinePost)));
       setLoading(false);
     }
   };
@@ -116,16 +158,25 @@ export default function ProfileScreen(props: ProfileScreenProps) {
         BORDER_300
       }
     >
-      {profile && (
+      {profile ? (
         <>
-          <div
-            className="w-full "
-            style={{
-              aspectRatio: 4,
-              backgroundImage: `url(${profile.banner})`,
-              backgroundSize: "cover",
-            }}
-          />
+          {profile.banner ? (
+            <div
+              className="w-full "
+              style={{
+                aspectRatio: 4,
+                backgroundImage: `url(${profile.banner})`,
+                backgroundSize: "cover",
+              }}
+            />
+          ) : (
+            <div
+              className="w-full bg-blue-900"
+              style={{
+                aspectRatio: 4,
+              }}
+            />
+          )}
           <div className={"flex flex-col px-2 border-b-2 " + BORDER_200}>
             <div className="flex flex-row">
               <div className="flex flex-col flex-1">
@@ -136,8 +187,13 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   />
                 </div>
                 <h3 className="text-2xl">{profile.displayName}</h3>
-                <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2">
-                  @{profile.handle}
+                <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2 flex flex-row items-center">
+                  @{profile.handle}{" "}
+                  {!!profile.viewer?.followedBy && (
+                    <span className="text-xs pb-1 pt-1.5 px-1.5 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-md ml-1 unselectable flex flex-row items-center leading-none">
+                      FOLLOWS YOU
+                    </span>
+                  )}
                 </h6>
               </div>
               <button
@@ -183,7 +239,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
               <Stat count={profile.followsCount || 0} label="following" />
               <Stat count={profile.postsCount || 0} label="posts" />
             </div>
-            <div className="mb-2">
+            <div className="mb-2 dark:text-slate-300 text-slate-600">
               <RichTextReact agent={agent} text={profile.description || ""} />
             </div>
             {/* TABS */}
@@ -212,7 +268,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
               .filter((post) => {
                 if (selectedView === "replies") return true;
                 else if (selectedView === "media")
-                  return post.postView.embed?.images;
+                  return post.postView.embed?.images && !post.repostBy;
                 else if (selectedView === "posts")
                   return (
                     !post.postView.record.reply ||
@@ -224,6 +280,8 @@ export default function ProfileScreen(props: ProfileScreenProps) {
               ))}
           </div>
         </>
+      ) : (
+        <LoadingPlaceholder />
       )}
     </div>
   );
