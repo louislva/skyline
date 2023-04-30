@@ -202,11 +202,13 @@ function postsToText(posts: SkylinePostType[]): string[] {
               item.postView.embed.record.value.text.trim()
             )
           : "";
-        const image = !!item.postView.record.embed?.images?.length
-          ? `[${item.postView.record.embed.images.length} ${
-              item.postView.record.embed.images.length === 1
-                ? "image"
-                : "images"
+        const images = ((item?.postView?.embed?.images as []) || []).concat(
+          // @ts-expect-error
+          item?.postView?.embed?.media?.images || []
+        );
+        const image = images.length
+          ? `[${images.length} ${
+              images.length === 1 ? "image" : "images"
             } attached]`
           : "";
 

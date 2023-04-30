@@ -25,12 +25,22 @@ export default function Post(props: {
               thumb: string;
             }[]
           | undefined;
+        media?:
+          | {
+              images?: {
+                alt: string;
+                fullsize: string;
+                thumb: string;
+              }[];
+            }
+          | undefined;
         record?: {
           author: PostView["author"];
           value: RecordType;
         };
       }
     | undefined = post.postView.embed as any;
+  const images = (embed?.images || []).concat(embed?.media?.images || []);
   const record: RecordType = post.postView.record as any;
   const repostBy = post.repostBy;
 
@@ -157,9 +167,9 @@ export default function Post(props: {
             ))}
           </div>
           {/* Images */}
-          {embed?.images && (
+        {!!images?.length && (
             <div className="mt-2 flex flex-row h-72 gap-4">
-              {embed.images.slice(0, 3).map((image) => (
+            {images?.slice(0, 3).map((image) => (
                 <div
                   className="flex-1 rounded-md overflow-hidden"
                   key={image.thumb}
