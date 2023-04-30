@@ -92,7 +92,13 @@ function TimelineScreen(props: {
         setLanguage={setLanguage}
       />
       <Timeline
-        key={timelineId + "--" + language}
+        key={
+          timelineId +
+          "--" +
+          language +
+          "--" +
+          (customTimelineConfigs[timelineId]?.meta?.modifiedOn || "0")
+        }
         timelineId={timelineId}
         agent={agent}
         egoHandle={egoHandle}
