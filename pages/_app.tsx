@@ -23,6 +23,7 @@ import { BskyAgent } from "@atproto/api";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
+import TweetComposer from "@/components/TweetComposer";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -170,14 +171,10 @@ export default function App({
             />
             <Component
               {...pageProps}
-              setLoginResponseData={setLoginResponseData}
               egoHandle={egoHandle}
               agent={agent}
-              timelineDefinitions={timelineDefinitions}
               customTimelineConfigs={customTimelineConfigs}
-              setCustomTimelineConfigs={setCustomTimelineConfigs}
               language={language}
-              setLanguage={setLanguage}
               timelineId={timelineId}
               timelines={timelineDefinitions}
             />
@@ -192,6 +189,7 @@ export default function App({
                 editingCustomAITimelineId={editingCustomAITimelineId}
               />
             )}
+            <TweetComposer agent={agent} />
           </>
         ) : (
           <LoginScreen

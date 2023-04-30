@@ -1,6 +1,7 @@
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 export default function TimelinePicker(props: {
@@ -27,25 +28,33 @@ export default function TimelinePicker(props: {
     language,
     setLanguage,
   } = props;
+  const router = useRouter();
   const [hoveredTimelineId, setHoveredTimelineId] =
     useState<TimelineIdType | null>(null);
+
+  const isShowingTimelines = ["", "/"].includes(router.pathname);
 
   return (
     <div className="flex flex-col items-center mb-4">
       <div className="flex flex-col lg:flex-row items-center">
         <div className="flex flex-col lg:flex-row justify-start rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 overflow-hidden">
           {Object.keys(timelines).map((id, index) => {
-            const isSelected = id === timelineId;
+            const isSelected = isShowingTimelines && id === timelineId;
 
             return (
               <button
                 key={id}
                 className={`outline-none p-2 h-10 flex flex-row items-center border-slate-300 dark:border-slate-600 ${
-                  id === timelineId
+                  isSelected
                     ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
                     : ""
                 } ${index !== 0 ? "lg:border-l " : ""}`}
                 onClick={() => {
+                  if (!isShowingTimelines) {
+                    router.push({
+                      pathname: "/",
+                    });
+                  }
                   setTimelineId(id as TimelineIdType);
                   setHoveredTimelineId(null);
                 }}
@@ -78,74 +87,77 @@ export default function TimelinePicker(props: {
         </button>
       </div>
 
-      <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
-        <b>{timelines[hoveredTimelineId || timelineId].name}:</b>{" "}
-        {timelines[hoveredTimelineId || timelineId].description}
-      </div>
-      {(!hoveredTimelineId || hoveredTimelineId === timelineId) && (
-        <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
-          {timelineId === "whatsHot" && (
-            <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-0 text-center pr-2">
-              {["english", "portuguese", "japanese", "farsi"].map(
-                (lang, index) => (
-                  <div
-                    className={
-                      "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
-                      (lang.toLowerCase() === language
-                        ? "font-bold dark:font-normal dark:text-slate-50 underline"
-                        : "") +
-                      (index === 0 ? "" : " border-l")
-                    }
-                    key={index}
-                    onClick={() => setLanguage(lang as LanguageType)}
-                  >
-                    {lang}
-                  </div>
-                )
-              )}
-            </div>
-          )}
-          {!!customTimelineConfigs[timelineId] && (
-            <>
-              <ShareTimelineButton
-                key={timelineId}
-                timelineConfig={customTimelineConfigs[timelineId]}
-                egoHandle={egoHandle}
-              />
-              <button
-                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
-                onClick={() => {
-                  setEditingCustomAITimelineId(timelineId);
-                }}
-              >
-                <span className="material-icons mr-1">edit</span>
-                Edit
-              </button>
-              <button
-                className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400 outline-none"
-                onClick={() => {
-                  // are you sure alert?
-                  if (
-                    confirm(
-                      `Are you sure you want to delete "${customTimelineConfigs[timelineId].identity.name}"?`
-                    )
-                  ) {
-                    const newCustomTimelineConfigs = {
-                      ...customTimelineConfigs,
-                    };
-                    delete newCustomTimelineConfigs[timelineId];
-                    setCustomTimelineConfigs(newCustomTimelineConfigs);
-                    setTimelineId("following");
-                  }
-                }}
-              >
-                <span className="material-icons mr-1">delete</span>
-                Delete
-              </button>
-            </>
-          )}
+      {(isShowingTimelines || hoveredTimelineId) && (
+        <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
+          <b>{timelines[hoveredTimelineId || timelineId].name}:</b>{" "}
+          {timelines[hoveredTimelineId || timelineId].description}
         </div>
       )}
+      {isShowingTimelines &&
+        (!hoveredTimelineId || hoveredTimelineId === timelineId) && (
+          <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
+            {timelineId === "whatsHot" && (
+              <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-0 text-center pr-2">
+                {["english", "portuguese", "japanese", "farsi"].map(
+                  (lang, index) => (
+                    <div
+                      className={
+                        "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
+                        (lang.toLowerCase() === language
+                          ? "font-bold dark:font-normal dark:text-slate-50 underline"
+                          : "") +
+                        (index === 0 ? "" : " border-l")
+                      }
+                      key={index}
+                      onClick={() => setLanguage(lang as LanguageType)}
+                    >
+                      {lang}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+            {!!customTimelineConfigs[timelineId] && (
+              <>
+                <ShareTimelineButton
+                  key={timelineId}
+                  timelineConfig={customTimelineConfigs[timelineId]}
+                  egoHandle={egoHandle}
+                />
+                <button
+                  className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
+                  onClick={() => {
+                    setEditingCustomAITimelineId(timelineId);
+                  }}
+                >
+                  <span className="material-icons mr-1">edit</span>
+                  Edit
+                </button>
+                <button
+                  className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400 outline-none"
+                  onClick={() => {
+                    // are you sure alert?
+                    if (
+                      confirm(
+                        `Are you sure you want to delete "${customTimelineConfigs[timelineId].identity.name}"?`
+                      )
+                    ) {
+                      const newCustomTimelineConfigs = {
+                        ...customTimelineConfigs,
+                      };
+                      delete newCustomTimelineConfigs[timelineId];
+                      setCustomTimelineConfigs(newCustomTimelineConfigs);
+                      setTimelineId("following");
+                    }
+                  }}
+                >
+                  <span className="material-icons mr-1">delete</span>
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
+        )}
     </div>
   );
 }
