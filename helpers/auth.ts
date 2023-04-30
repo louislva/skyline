@@ -26,6 +26,8 @@ export function useAuthorization(agent: BskyAgent) {
     );
 
   const egoHandle = loginResponseData?.handle;
+  const egoDid = loginResponseData?.did;
+
   const accessJwt = !!loginResponseData?.accessJwt
     ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
     : null;
@@ -48,5 +50,5 @@ export function useAuthorization(agent: BskyAgent) {
     }
   }, [loginResponseData]);
 
-  return { egoHandle, setLoginResponseData };
+  return { egoHandle, egoDid, setLoginResponseData };
 }
