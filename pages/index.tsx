@@ -16,7 +16,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const INPUT_CLASSNAME =
-  "border outline-none dark:bg-slate-700 bg-slate-200 border-slate-300 dark:border-slate-700";
+  "border outline-none dark:bg-slate-700 bg-slate-100 border-slate-300 dark:border-slate-700";
 
 // TIMELINES
 export type TimelineIdType = string;
@@ -173,7 +173,10 @@ function TweetComposer(props: { agent: BskyAgent }) {
           {/* Q: what's better: textarea or a ContentEditable with a placeholder? */}
           {/* A: textarea, because it supports multiple lines */}
           <textarea
-            className="w-full h-48 outline-none text-md p-4 outline-none rounded-md resize-none dark:bg-slate-900 bg-slate-200"
+            className={
+              "w-full h-48 outline-none text-md p-4 outline-none rounded-md resize-none " +
+              INPUT_CLASSNAME
+            }
             autoFocus
             // since these are tweets: yes autocorrect, no autocapitalize
             autoCorrect="on"
@@ -535,7 +538,7 @@ function HorizontalSelector<T>(props: {
   const { value, setValue, options } = props;
 
   return (
-    <div className="flex flex-row h-10 rounded-md overflow-hidden">
+    <div className="flex flex-row h-10 rounded-md overflow-hidden border border-slate-300 dark:border-slate-600">
       {options.map(([label, id], index) => {
         const selected = id === value;
         return (
@@ -544,8 +547,8 @@ function HorizontalSelector<T>(props: {
               "outline-none p-2 flex-1 text-center border-slate-300 dark:border-slate-600 " +
               (index !== 0 ? "border-l " : "") +
               (selected
-                ? "dark:bg-slate-600 bg-slate-300"
-                : "dark:bg-slate-700 bg-slate-200")
+                ? "dark:bg-slate-600 bg-slate-200"
+                : "dark:bg-slate-700 bg-slate-100")
             }
             onClick={() => setValue(id)}
           >
@@ -785,7 +788,7 @@ function LoginScreen(props: {
   const [error, setError] = useState<null | string>(null);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center justify-center min-h-screen px-2">
       <Header />
       {/* An offset equal to the security info (ish) */}
       <div className="h-32" />
@@ -804,14 +807,14 @@ function LoginScreen(props: {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border border-slate-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
+          className={"p-2 rounded mb-4 " + INPUT_CLASSNAME}
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border border-slate-300 dark:border-slate-700 p-2 rounded mb-4 text-black"
+          className={"p-2 rounded mb-4 " + INPUT_CLASSNAME}
         />
         <button
           type="submit"

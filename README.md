@@ -73,12 +73,12 @@ Here is the to-do list I use to track progress - feel free to contribute!
 - [ ] <u>Project "Full Client"</u>
   - [x] Like tweets
   - [x] Repost tweets
-  - [ ] Post top level
-  - [ ] Quote post tweets
+  - [x] Post top level
   - [ ] Click and see threads
-  - [ ] Post replies
   - [ ] Click and see profiles
   - [ ] Follow / unfollow people
+  - [ ] Post replies
+  - [ ] Quote post tweets
   - [ ] Notifications
   - [ ] Links in Tweets
   - [ ] Click images to see expanded
