@@ -272,7 +272,13 @@ export default function ProfileScreen(props: ProfileScreenProps) {
               .filter((post) => {
                 if (selectedView === "replies") return true;
                 else if (selectedView === "media")
-                  return post.postView.embed?.images && !post.repostBy;
+                  return (
+                    // @ts-expect-error
+                    (post.postView.embed?.images?.length ||
+                      // @ts-expect-error
+                      post.postView.embed?.media?.images?.length) &&
+                    !post.repostBy
+                  );
                 else if (selectedView === "posts")
                   return (
                     !post.postView.record.reply ||

@@ -1,10 +1,19 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 export default function Modal(props: {
   children: ReactNode;
   close: () => void;
 }) {
   const { children, close } = props;
+
+  useEffect(() => {
+    // stop scroll on body while open
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
   return (
     <div
       className="fixed top-0 left-0 p-4 py-8 w-screen h-screen bg-black/50 backdrop-blur-md flex flex-row justify-center items-center"
