@@ -135,28 +135,28 @@ export default function Post(props: {
           )}
 
           {/* Profile row */}
-        <div className="flex flex-row ">
-          <Link
-            href={`/profile/${author.handle}`}
-            className="flex flex-row hover:underline"
-          >
-            {/* Pfp */}
-            {author.avatar && (
-              <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
-                <img src={author.avatar} alt={author.name + "'s avatar"} />
+          <div className="flex flex-row ">
+            <Link
+              href={`/profile/${author.handle}`}
+              className="flex flex-row hover:underline"
+            >
+              {/* Pfp */}
+              {author.avatar && (
+                <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
+                  <img src={author.avatar} alt={author.name + "'s avatar"} />
+                </div>
+              )}
+              {/* Name / handle */}
+              <div className="flex flex-col">
+                <div className="font-semibold">{author.displayName}</div>
+                <div className="text-slate-500 dark:text-slate-400">
+                  {author.handle ===
+                  "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
+                    ? "i'm an asshole 💩"
+                    : "@" + author.handle}
+                </div>
               </div>
-            )}
-            {/* Name / handle */}
-            <div className="flex flex-col">
-              <div className="font-semibold">{author.displayName}</div>
-              <div className="text-slate-500 dark:text-slate-400">
-                {author.handle ===
-                "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
-                  ? "i'm an asshole 💩"
-                  : "@" + author.handle}
-              </div>
-            </div>
-          </Link>
+            </Link>
             {/* timestamp */}
             <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
               {moment(post.postView.indexedAt).fromNow()}
@@ -172,9 +172,9 @@ export default function Post(props: {
             ))}
           </div>
           {/* Images */}
-        {!!images?.length && (
+          {!!images?.length && (
             <div className="mt-2 flex flex-row h-72 gap-4">
-            {images?.slice(0, 3).map((image) => (
+              {images?.slice(0, 3).map((image) => (
                 <div
                   className="flex-1 rounded-md overflow-hidden"
                   key={image.thumb}
@@ -222,7 +222,25 @@ export default function Post(props: {
           <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
             <div className="material-icons mr-1">chat_bubble_outline</div>
             <div className="mr-4">{post.postView.replyCount}</div>
-            <div className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
+            <div
+              className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+              onClick={async (e) => {
+                e.preventDefault();
+                setIsReposted(!isReposted);
+                if (!isReposted) {
+                  const { uri } = await agent.repost(
+                    post.postView.uri,
+                    post.postView.cid
+                  );
+                  setRepostUri(uri);
+                } else {
+                  if (repostUri) {
+                    agent.deleteRepost(repostUri);
+                  }
+                  setRepostUri(null);
+                }
+              }}
+            >
               <div
                 className={
                   "material-icons " +
@@ -233,22 +251,6 @@ export default function Post(props: {
                 style={{
                   paddingRight: 0.66 / 16 + "rem",
                 }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  setIsReposted(!isReposted);
-                  if (!isReposted) {
-                    const { uri } = await agent.repost(
-                      post.postView.uri,
-                      post.postView.cid
-                    );
-                    setRepostUri(uri);
-                  } else {
-                    if (repostUri) {
-                      agent.deleteRepost(repostUri);
-                    }
-                    setRepostUri(null);
-                  }
-                }}
               >
                 repeat
               </div>
@@ -256,7 +258,25 @@ export default function Post(props: {
             <div className="mr-4">
               {(post.postView.repostCount || 0) + repostDiff}
             </div>
-            <div className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1">
+            <div
+              className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+              onClick={async (e) => {
+                e.preventDefault();
+                setIsLiked(!isLiked);
+                if (!isLiked) {
+                  const { uri } = await agent.like(
+                    post.postView.uri,
+                    post.postView.cid
+                  );
+                  setLikeUri(uri);
+                } else {
+                  if (likeUri) {
+                    agent.deleteLike(likeUri);
+                  }
+                  setLikeUri(null);
+                }
+              }}
+            >
               <div
                 className={
                   "material-icons " +
@@ -266,22 +286,6 @@ export default function Post(props: {
                 }
                 style={{
                   paddingRight: 0.66 / 16 + "rem",
-                }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  setIsLiked(!isLiked);
-                  if (!isLiked) {
-                    const { uri } = await agent.like(
-                      post.postView.uri,
-                      post.postView.cid
-                    );
-                    setLikeUri(uri);
-                  } else {
-                    if (likeUri) {
-                      agent.deleteLike(likeUri);
-                    }
-                    setLikeUri(null);
-                  }
                 }}
               >
                 {isLiked ? "favorite" : "favorite_border"}
