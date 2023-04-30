@@ -5,7 +5,7 @@ import {
   TimelineConfigsType,
 } from "@/helpers/makeFeeds";
 import { behaviourToDescription } from "@/helpers/timelines";
-import { INPUT_CLASSNAME } from "@/pages";
+import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
 import { useState } from "react";
 
 function HorizontalSelector<T>(props: {
@@ -16,13 +16,18 @@ function HorizontalSelector<T>(props: {
   const { value, setValue, options } = props;
 
   return (
-    <div className="flex flex-row h-10 rounded-md overflow-hidden border border-slate-300 dark:border-slate-600">
+    <div
+      className={
+        "flex flex-row h-10 rounded-md overflow-hidden border " + BORDER_300
+      }
+    >
       {options.map(([label, id], index) => {
         const selected = id === value;
         return (
           <button
             className={
-              "outline-none p-2 flex-1 text-center border-slate-300 dark:border-slate-600 " +
+              "outline-none p-2 flex-1 text-center " +
+              BORDER_300 +
               (index !== 0 ? "border-l " : "") +
               (selected
                 ? "dark:bg-slate-600 bg-slate-200"

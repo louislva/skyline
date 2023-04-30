@@ -4,6 +4,7 @@ import { BskyAgent } from "@atproto/api";
 import { useEffect, useMemo, useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
 import Post from "./Post";
+import { BORDER_300 } from "@/helpers/styling";
 
 export default function Timeline(props: {
   agent: BskyAgent;
@@ -112,7 +113,12 @@ export default function Timeline(props: {
   }, []);
 
   return (
-    <div className="border-2 w-full sm:w-136 border-gray-300 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl mb-8 overflow-hidden">
+    <div
+      className={
+        "border-2 w-full sm:w-136 bg-white dark:bg-slate-800 rounded-xl mb-8 overflow-hidden " +
+        BORDER_300
+      }
+    >
       {posts.length > 0 ? (
         <>
           {now - loadedSegments?.[0]?.loadTimestamp > 60000 ? (

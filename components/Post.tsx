@@ -1,4 +1,5 @@
 import { RecordType, SkylinePostType } from "@/helpers/contentTypes";
+import { BORDER_300 } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
@@ -89,7 +90,7 @@ export default function Post(props: {
             "p-4 overflow-hidden " +
             (hasChildren || isLastPost
               ? "border-none "
-              : "border-b border-gray-300 dark:border-slate-700 ")
+              : "border-b " + BORDER_300)
           }
         >
           {/* Reply / repost row */}
@@ -97,9 +98,7 @@ export default function Post(props: {
             <div
               className={
                 "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-                (record.reply
-                  ? "border-t border-dashed border-slate-300 dark:border-slate-600 "
-                  : "")
+                (record.reply ? "border-t border-dashed " + BORDER_300 : "")
               }
             >
               {record.reply && (
@@ -171,7 +170,11 @@ export default function Post(props: {
           )}
           {/* Quote tweets */}
           {embed?.record?.value?.text && (
-            <div className="mt-2 border border-slate-300 dark:border-slate-600 rounded-md p-2 py-2 text-sm">
+            <div
+              className={
+                "mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300
+              }
+            >
               <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
                 <img
                   src={embed.record.author.avatar}
@@ -270,10 +273,10 @@ export default function Post(props: {
             {post.score && (
               <>
                 {/* cog icon / settings icon bec it's a machine */}
-                <div className="material-icons ml-auto mr-1 text-gray-400">
+                <div className="material-icons ml-auto mr-1 text-slate-400">
                   settings
                 </div>
-                <div className="text-gray-400">
+                <div className="text-slate-400">
                   {/* {(post.score * 100).toFixed(2)} */}
                   {(
                     Math.pow(Math.abs(post.score), 0.3) *

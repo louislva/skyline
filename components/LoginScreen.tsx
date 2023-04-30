@@ -1,5 +1,5 @@
 import { LoginResponseDataType } from "@/helpers/bsky";
-import { INPUT_CLASSNAME } from "@/pages";
+import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
 import { useState } from "react";
 
@@ -80,8 +80,13 @@ export default function LoginScreen(props: {
 }
 function SecurityInfo() {
   return (
-    <div className="max-w-sm bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-300 dark:border-slate-600 rounded-xl mb-8">
-      <div className="flex flex-row pb-2 border-b border-slate-300 dark:border-slate-600 mb-2">
+    <div
+      className={
+        "max-w-sm bg-white dark:bg-slate-900 p-4 rounded-xl border rounded-xl mb-8 " +
+        BORDER_300
+      }
+    >
+      <div className={"flex flex-row pb-2 border-b mb-2 " + BORDER_300}>
         <span className="material-icons mr-2 cursor-pointer">info</span>
         <div>Is this secure?</div>
       </div>

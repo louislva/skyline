@@ -1,5 +1,6 @@
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
+import { BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -37,14 +38,19 @@ export default function TimelinePicker(props: {
   return (
     <div className="flex flex-col items-center mb-4">
       <div className="flex flex-col lg:flex-row items-center">
-        <div className="flex flex-col lg:flex-row justify-start rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 overflow-hidden">
+        <div
+          className={
+            "flex flex-col lg:flex-row justify-start rounded-md bg-white dark:bg-slate-800 border overflow-hidden" +
+            BORDER_300
+          }
+        >
           {Object.keys(timelines).map((id, index) => {
             const isSelected = isShowingTimelines && id === timelineId;
 
             return (
               <button
                 key={id}
-                className={`outline-none p-2 h-10 flex flex-row items-center border-slate-300 dark:border-slate-600 ${
+                className={`outline-none p-2 h-10 flex flex-row items-center ${BORDER_300} ${
                   isSelected
                     ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
                     : ""
@@ -77,7 +83,10 @@ export default function TimelinePicker(props: {
           })}
         </div>
         <button
-          className="p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0 outline-none"
+          className={
+            "p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0 outline-none " +
+            BORDER_300
+          }
           onClick={() => {
             setCreateTimelineModalOpen(true);
           }}
@@ -102,7 +111,8 @@ export default function TimelinePicker(props: {
                   (lang, index) => (
                     <div
                       className={
-                        "pl-2 ml-2 leading-none border-slate-300 dark:border-slate-600 inline-block " +
+                        "pl-2 ml-2 leading-none inline-block " +
+                        BORDER_300 +
                         (lang.toLowerCase() === language
                           ? "font-bold dark:font-normal dark:text-slate-50 underline"
                           : "") +

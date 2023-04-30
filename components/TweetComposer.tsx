@@ -1,7 +1,7 @@
 import { BskyAgent } from "@atproto/api";
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
-import { INPUT_CLASSNAME } from "@/pages";
+import { INPUT_CLASSNAME } from "@/helpers/styling";
 
 export default function TweetComposer(props: { agent: BskyAgent }) {
   const { agent } = props;

@@ -1,17 +1,8 @@
-import Modal from "@/components/Modal";
 import Timeline from "@/components/Timeline";
-import { LoginResponseDataType } from "@/helpers/bsky";
 import { LanguageType } from "@/helpers/classifyLanguage";
-import {
-  TimelineConfigsType,
-  TimelineDefinitionType,
-} from "@/helpers/makeFeeds";
+import { TimelineConfigsType } from "@/helpers/makeFeeds";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { BskyAgent } from "@atproto/api";
-import { useEffect, useState } from "react";
-
-export const INPUT_CLASSNAME =
-  "border outline-none dark:bg-slate-700 bg-slate-100 border-slate-300 dark:border-slate-700";
 
 // TIMELINE SCREEN
 export type TimelineScreenProps = {
