@@ -67,8 +67,8 @@ export default class ListFetcher {
       .map((x) => x.feed)
       .flat()
       .sort((a: FeedViewPost, b: FeedViewPost) => {
-        const dateA = new Date((a.post.record as any).createdAt);
-        const dateB = new Date((b.post.record as any).createdAt);
+        const dateA = this.getDateFromPost(a);
+        const dateB = this.getDateFromPost(b);
         return dateB.getTime() - dateA.getTime();
       })
       .map(feedViewPostToSkylinePost);
@@ -79,6 +79,7 @@ export default class ListFetcher {
   getOldestTimestamp = () => {
     let oldestTimestamp = new Date();
     this.handlesList.forEach((handle) => {
+      if (!Object.keys(this.state).includes(handle)) return;
       const postList = this.state[handle].feed;
       if (postList.length === 0) return;
       const dateToCheck = this.getDateFromPost(postList.at(-1)!);
