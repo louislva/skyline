@@ -75,20 +75,18 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Repost tweets
   - [x] Post top level
   - [ ] Click and see threads
-  - [ ] Click and see profiles
-  - [ ] Follow / unfollow people
+  - [x] Click and see profiles
+  - [x] Follow / unfollow people
   - [ ] Post replies
   - [ ] Quote post tweets
   - [ ] Notifications
   - [ ] Links in Tweets
   - [ ] Click images to see expanded
   - [ ] "Interactions" tab on profiles
-- [ ] Project "Search" (We should have at least as advanced search as Twitter!)
-  - [ ] Capture every tweet via Firehose (similar to https://github.com/ericvolp12/bsky-experiments) & put them in Postgres
-  - [ ] Allow user to query by text, date published, and author
-  - [ ] Register every post the user has seen & allow searching for only posts they've seen before
-- [ ] Project "Social Audio"
-  - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
+- [ ] Project "Performance Optimization"
+  - [ ] Don't render out of view - it's lagging intensely on mobile
+  - [ ] Much smaller images! (both in size & jpg compression)
+  - [ ] Figure out anything else that's slow
 - [ ] Project "DMs"
   - [ ] DB-based DM system
   - [ ] Bot @skyline.gay account to notify users of new DMs
@@ -96,13 +94,19 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Ability to use custom list as the baseFeed for a timeline
   - [ ] Role Play: automatically create a new list from someone else's following
   - [ ] Own followers list
+- [ ] Project "Graysky Integration"
+  - [ ] Expose timelines as an API
+- [ ] Project "Analytics"
+  - [ ] Keep stats on logins, usage time, feed %, created timelines, etc.
+- [ ] Project "Social Audio"
+  - [ ] Skyspaces.net (https://staging.bsky.app/profile/geeken.tv) integration
 - [ ] Project "Marketplace"
   - [ ] Get a notification when your timeline gets 20+ installs
   - [ ] Timeline Library: a place that lists shared timelines, which you can then install
-- [ ] Project "Analytics"
-  - [ ] Keep stats on logins, usage time, feed %, created timelines, etc.
 - [ ] Project "Fleets"
   - [ ] Custom fleets
   - [ ] Auto-post link to fleet
-- [ ] Project "Graysky Integration"
-  - [ ] Expose timelines as an API
+- [ ] Project "Search" (We should have at least as advanced search as Twitter!)
+  - [ ] Capture every tweet via Firehose (similar to https://github.com/ericvolp12/bsky-experiments) & put them in Postgres
+  - [ ] Allow user to query by text, date published, and author
+  - [ ] Register every post the user has seen & allow searching for only posts they've seen before
