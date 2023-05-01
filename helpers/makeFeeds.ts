@@ -1,6 +1,9 @@
 import { BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import {
+  FeedViewPost,
+  PostView,
+} from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import {
   feedViewPostToSkylinePost,
   getFollows,
@@ -80,6 +83,135 @@ const defaultPostProcessFeed: TimelineDefinitionType["postProcessFeed"] = (
 
 function markdownQuote(text: string): string {
   return "> " + text.replace(/\n/g, "\n> ");
+}
+
+async function loadListFeed(
+  agent: BskyAgent,
+  handlesList: string[] // stored in localstorage somewhere... and where are we storing 'this is the selected list'...
+): Promise<ProduceFeedOutput> {
+  // 1. fetch N posts by each member.
+  // 2. what is the oldest post? we can call it OP
+  // 3. each user with an oldest post newer than OP gets added to fetchMore list
+  // 4. for each such user fetch another N
+  // 5. if a user should no longer be on this (oldest older than OP) list remove them
+  // 6. fetchMore
+  // 7. some sort of sanity check emergency brake
+  //
+  // internal to this function we have everything we need for the 'load more' button,
+  // not sure what you want to do with that
+
+  const N_FETCH = 5;
+  type listFeedState = {
+    [key: string]: { feed: FeedViewPost[]; cursor: string | undefined };
+  };
+  const fetchedPosts: listFeedState = {};
+
+  const fetchForHandle = (handle: string, cursor?: string) =>
+    agent
+      .getAuthorFeed({
+        actor: handle,
+        limit: N_FETCH,
+        cursor,
+      })
+      .then((response) => {
+        if (response.success) {
+          return { feed: response.data.feed, cursor: response.data.cursor };
+        }
+        // TODO error handling and all that jazz
+      });
+
+  await Promise.all(
+    handlesList.map(async (handle) => {
+      const fetched = await fetchForHandle(handle);
+      // TODO error handling and all that jazz
+      if (fetched) {
+        fetchedPosts[handle] = fetched;
+      }
+    })
+  );
+
+  const getDateFromPost = (post: FeedViewPost): Date =>
+    new Date((post.post.record as any).createdAt);
+
+  const getOldestTimestamp = () => {
+    let oldestTimestamp = new Date();
+    handlesList.forEach((handle) => {
+      const postList = fetchedPosts[handle].feed;
+      if (postList.length === 0) return;
+      const dateToCheck = getDateFromPost(postList.at(-1)!);
+      if (dateToCheck.getTime() < oldestTimestamp.getTime()) {
+        oldestTimestamp = dateToCheck;
+      }
+    });
+    return oldestTimestamp;
+  };
+
+  const oldestTimestamp = getOldestTimestamp();
+  console.log(`Need to reach ${oldestTimestamp}`);
+  const getHandlesNeedingMorePosts = () => {
+    const out: string[] = [];
+    Object.entries(fetchedPosts).forEach(([handle, vals]) => {
+      if (
+        getDateFromPost(vals.feed.at(-1)!).getTime() > oldestTimestamp.getTime()
+      ) {
+        out.push(handle);
+      }
+    });
+    return out;
+  };
+
+  let handlesToFetch = getHandlesNeedingMorePosts();
+
+  let loopCount = 0;
+
+  while (handlesToFetch.length > 0) {
+    loopCount++;
+    let handlesToStop: string[] = [];
+    await Promise.all(
+      handlesToFetch.map(async (handle) => {
+        console.log(`fetching more for ${handle}`);
+        const morePosts = await fetchForHandle(
+          handle,
+          fetchedPosts[handle].cursor
+        );
+        if (morePosts) {
+          console.log(
+            `Fetched a post dated ${getDateFromPost(morePosts.feed.at(-1)!)}`
+          );
+          fetchedPosts[handle].feed.push(...morePosts.feed);
+          fetchedPosts[handle].cursor = morePosts.cursor;
+          if (
+            getDateFromPost(morePosts.feed.at(-1)!).getTime() <
+            oldestTimestamp.getTime()
+          ) {
+            // TODO another place an API error will bone us
+            console.log(`that's enough no more from ${handle}`);
+            handlesToStop.push(handle);
+          }
+        }
+      })
+    );
+    handlesToFetch = handlesToFetch.filter(
+      (handle) => !handlesToStop.includes(handle)
+    );
+    console.log(`now fetching for ${JSON.stringify(handlesToFetch)}`);
+    if (loopCount > 15) {
+      // or whatever
+      break;
+    }
+  }
+
+  const sortedAndFormattedPosts = Object.values(fetchedPosts)
+    .map((x) => x.feed)
+    .flat()
+    .sort((a: FeedViewPost, b: FeedViewPost) => {
+      const dateA = new Date((a.post.record as any).createdAt);
+      const dateB = new Date((b.post.record as any).createdAt);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .map(feedViewPostToSkylinePost);
+
+  return { posts: sortedAndFormattedPosts, cursor: undefined };
 }
 
 async function loadOneFromEachFeed(
