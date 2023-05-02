@@ -3,7 +3,7 @@ import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
 import { BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 
 export default function TimelinePicker(props: {
@@ -192,6 +192,8 @@ function ShareTimelineButton(props: {
     }
   }, [copied]);
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
   return (
     <>
       {shareLink && (
@@ -206,6 +208,10 @@ function ShareTimelineButton(props: {
               <input
                 className="flex-1 text-black dark:text-slate-50 flex-1 bg-transparent outline-none"
                 value={shareLink}
+                ref={inputRef}
+                onClick={() => {
+                  inputRef.current?.setSelectionRange(0, shareLink.length);
+                }}
               />
               <button
                 className="text-black dark:text-slate-50 flex flex-row items-center"
