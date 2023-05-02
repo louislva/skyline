@@ -25,6 +25,8 @@ type EmbedType = {
   record?: {
     author: PostView["author"];
     value: RecordType;
+    cid: string;
+    uri: string;
   };
 };
 
@@ -314,33 +316,7 @@ function ContentStandalone(props: {
         </div>
       )}
       {/* Quote tweets */}
-      {embed?.record?.value?.text && (
-        <div
-          className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}
-        >
-          <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
-            <img
-              src={embed.record.author.avatar}
-              className="w-4 h-4 rounded-full mr-1"
-            />
-            <span className="font-semibold mr-1 leading-none">
-              {embed.record.author.displayName}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400 leading-none">
-              {" "}
-              @{embed.record.author.handle}
-            </span>
-          </div>
-          <div className="bg-blue-4000">
-            {embed?.record?.value?.text?.split("\n").map((line, index) => (
-              <Fragment key={line + "$" + index}>
-                {index !== 0 && <br />}
-                {line}
-              </Fragment>
-            ))}
-          </div>
-        </div>
-      )}
+      {embed?.record?.value && <QuotePost embed={embed} />}
       {/* Likes, RTs, etc. row */}
       <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
         <div className="material-icons mr-1">chat_bubble_outline</div>
@@ -562,33 +538,7 @@ function ContentInline(props: {
           </div>
         )}
         {/* Quote tweets */}
-        {embed?.record?.value?.text && (
-          <div
-            className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}
-          >
-            <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
-              <img
-                src={embed.record.author.avatar}
-                className="w-4 h-4 rounded-full mr-1"
-              />
-              <span className="font-semibold mr-1 leading-none">
-                {embed.record.author.displayName}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 leading-none">
-                {" "}
-                @{embed.record.author.handle}
-              </span>
-            </div>
-            <div className="bg-blue-4000">
-              {embed?.record?.value?.text?.split("\n").map((line, index) => (
-                <Fragment key={line + "$" + index}>
-                  {index !== 0 && <br />}
-                  {line}
-                </Fragment>
-              ))}
-            </div>
-          </div>
-        )}
+        {embed?.record?.value && <QuotePost embed={embed} />}
         {/* Likes, RTs, etc. row */}
         <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
           <div className="material-icons mr-1">chat_bubble_outline</div>
@@ -657,5 +607,38 @@ function ContentInline(props: {
         </div>
       </div>
     </div>
+  );
+}
+
+function QuotePost(props: { embed: EmbedType }) {
+  const { embed } = props;
+  const link = `/profile/${embed.record?.author.handle}/post/${
+    embed.record?.uri?.split("/")?.slice(-1)?.[0]
+  }`;
+  return (
+    <Link href={link}>
+      <div className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}>
+        <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
+          <img
+            src={embed.record?.author.avatar}
+            className="w-4 h-4 rounded-full mr-1"
+          />
+          <span className="font-semibold mr-1 leading-none">
+            {embed.record?.author.displayName}
+          </span>
+          <span className="text-slate-500 dark:text-slate-400 leading-none">
+            @{embed.record?.author.handle}
+          </span>
+        </div>
+        <div className="bg-blue-4000">
+          {embed?.record?.value?.text?.split("\n").map((line, index) => (
+            <Fragment key={line + "$" + index}>
+              {index !== 0 && <br />}
+              {line}
+            </Fragment>
+          ))}
+        </div>
+      </div>
+    </Link>
   );
 }
