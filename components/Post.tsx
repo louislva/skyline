@@ -30,17 +30,22 @@ export default function Post(props: {
   agent: BskyAgent;
   post: SkylinePostType;
   hasChildren?: boolean;
-  isLastPost?: boolean;
+  isLastPostInFeed?: boolean;
   isSub?: boolean;
   isStandAlone?: boolean;
+  isFirstPostInThread?: boolean;
 }) {
-  const { agent, post, hasChildren, isLastPost, isSub, isStandAlone } = props;
+  const { agent, post, hasChildren, isLastPostInFeed, isSub, isStandAlone } =
+    props;
+
   const author = post.postView.author;
   const embed: EmbedType | undefined = post.postView.embed as any;
   const images = (embed?.images || []).concat(embed?.media?.images || []);
   const record: RecordType = post.postView.record as any;
 
   const ancestorPosts: SkylinePostType[] = post.replyingTo || [];
+  const isFirstPostInThread =
+    !!props.isFirstPostInThread || (!isSub && ancestorPosts.length === 0);
 
   const [isLiked, setIsLiked] = useState<boolean>(!!post.postView.viewer?.like);
   const [likeUri, setLikeUri] = useState<string | null>(
@@ -85,11 +90,12 @@ export default function Post(props: {
     <>
       {/* Show all replies, if isStandAlone */}
       {isStandAlone ? (
-        ancestorPosts.map((reply) => (
+        ancestorPosts.map((reply, index) => (
           <Post
             key={reply.postView.cid + "as child to" + post.postView.cid}
             agent={agent}
             post={reply}
+            isFirstPostInThread={index === 0}
             hasChildren
             isSub
           />
@@ -101,12 +107,13 @@ export default function Post(props: {
               key={reply.postView.cid + "as child to" + post.postView.cid}
               agent={agent}
               post={reply}
+              isFirstPostInThread
               hasChildren
               isSub
             />
           ))}
           {ancestorPosts.length > 2 && (
-            <div className="mt-0 mb-0 px-4 flex flex-row items-center text-sm mb-4 text-slate-700 dark:text-slate-300">
+            <div className="px-4 flex flex-row items-center text-sm my-3 text-slate-700 dark:text-slate-300">
               <div className="text-xl mr-1 -mt-2">...</div>
               {ancestorPosts.length - 2} more replies{" "}
               <div className="text-xl ml-1 -mt-2">...</div>
@@ -149,8 +156,9 @@ export default function Post(props: {
           repostCount={(post.postView.repostCount || 0) + repostDiff}
           // Other
           isSub={!!isSub}
-          hasChildren={!!hasChildren}
-          isLastPost={!!isLastPost}
+          isLastPostInFeed={!!isLastPostInFeed}
+          isFirstPostInThread={isFirstPostInThread}
+          isLastPostInThread={!hasChildren}
         />
       ) : (
         <ContentInline
@@ -171,8 +179,9 @@ export default function Post(props: {
           repostCount={(post.postView.repostCount || 0) + repostDiff}
           // Other
           isSub={!!isSub}
-          hasChildren={!!hasChildren}
-          isLastPost={!!isLastPost}
+          isLastPostInFeed={!!isLastPostInFeed}
+          isFirstPostInThread={isFirstPostInThread}
+          isLastPostInThread={!hasChildren}
         />
       )}
     </>
@@ -198,8 +207,9 @@ function ContentStandalone(props: {
   repostCount: number;
 
   isSub: boolean; // If we're not at the root level
-  hasChildren: boolean;
-  isLastPost: boolean;
+  isLastPostInThread: boolean;
+  isFirstPostInThread: boolean;
+  isLastPostInFeed: boolean;
 }) {
   const {
     agent,
@@ -220,8 +230,9 @@ function ContentStandalone(props: {
     repostCount,
 
     isSub,
-    hasChildren,
-    isLastPost,
+    isFirstPostInThread,
+    isLastPostInThread,
+    isLastPostInFeed,
   } = props;
 
   const repostBy = post.repostBy;
@@ -234,31 +245,19 @@ function ContentStandalone(props: {
     >
       <div
         className={
-          "p-4 bg-red-500 overflow-hidden " +
-          (hasChildren || isLastPost
-            ? "border-none "
-            : "border-b " + BORDER_300)
+          "p-4 overflow-hidden " +
+          (!isFirstPostInThread ? "border-t " : "") +
+          (!isLastPostInFeed ? "border-b " : "") +
+          BORDER_300
         }
       >
         {/* Reply / repost row */}
         {(record.reply || repostBy) && (
           <div
             className={
-              "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-              (record.reply && (ancestorPosts.length || isSub)
-                ? "border-t border-dashed " + BORDER_300
-                : "")
+              "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 "
             }
           >
-            {record.reply && (
-              <>
-                <div className="material-icons mr-1">reply</div>
-                <div>Replied</div>
-              </>
-            )}
-            {record.reply && repostBy && (
-              <div className="ml-2 mr-1 border-l h-3 w-0 border-slate-600 dark:border-slate-400"></div>
-            )}
             {repostBy && (
               <>
                 <div className="material-icons mr-1">repeat</div>
@@ -440,8 +439,9 @@ function ContentInline(props: {
   repostCount: number;
 
   isSub: boolean; // If we're not at the root level
-  hasChildren: boolean;
-  isLastPost: boolean;
+  isLastPostInThread: boolean;
+  isFirstPostInThread: boolean;
+  isLastPostInFeed: boolean;
 }) {
   const {
     agent,
@@ -462,11 +462,14 @@ function ContentInline(props: {
     repostCount,
 
     isSub,
-    hasChildren,
-    isLastPost,
+    isFirstPostInThread,
+    isLastPostInThread,
+    isLastPostInFeed,
   } = props;
 
   const repostBy = post.repostBy;
+
+  const profileLink = `/profile/${author.handle}`;
 
   return (
     <Link
@@ -476,187 +479,197 @@ function ContentInline(props: {
     >
       <div
         className={
-          "p-4 overflow-hidden " +
-          (hasChildren || isLastPost
+          "p-4 overflow-hidden flex flex-row " +
+          (!isLastPostInThread || isLastPostInFeed
             ? "border-none "
             : "border-b " + BORDER_300)
         }
       >
-        {/* Reply / repost row */}
-        {(record.reply || repostBy) && (
-          <div
-            className={
-              "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-              (record.reply && (ancestorPosts.length || isSub)
-                ? "border-t border-dashed " + BORDER_300
-                : "")
-            }
-          >
-            {record.reply && (
-              <>
-                <div className="material-icons mr-1">reply</div>
-                <div>Replied</div>
-              </>
-            )}
-            {record.reply && repostBy && (
-              <div className="ml-2 mr-1 border-l h-3 w-0 border-slate-600 dark:border-slate-400"></div>
-            )}
-            {repostBy && (
-              <>
-                <div className="material-icons mr-1">repeat</div>
-                <div>Reposted by {repostBy.displayName}</div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Profile row */}
-        <div className="flex flex-row ">
-          <Link
-            href={`/profile/${author.handle}`}
-            className="flex flex-row hover:underline"
-          >
-            {/* Pfp */}
-            {author.avatar && (
-              <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
-                <img src={author.avatar} alt={author.name + "'s avatar"} />
-              </div>
-            )}
-            {/* Name / handle */}
-            <div className="flex flex-col">
-              <div className="font-semibold">{author.displayName}</div>
+        {/* Profile Column */}
+        <div className="flex flex-col w-12 items-center">
+          {/* Pfp */}
+          {!isFirstPostInThread && (
+            <div className="absolute -mt-4 w-0.5 h-2 flex-1 bg-slate-500"></div>
+          )}
+          {author.avatar && (
+            <Link
+              href={profileLink}
+              className="w-12 h-12 rounded-full overflow-hidden"
+            >
+              <img src={author.avatar} alt={author.name + "'s avatar"} />
+            </Link>
+          )}
+          {!isLastPostInThread && (
+            <div
+              className={
+                "w-0.5 flex-1 bg-slate-500 " +
+                (isLastPostInThread ? "mt-2 -mb-0" : "mt-2 -mb-4")
+              }
+            />
+          )}
+        </div>
+        {/* Content Column */}
+        <div className="relative flex flex-col flex-1 pl-4 pr-2">
+          {/* Reply / repost row */}
+          {repostBy && (
+            <div
+              className={
+                "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
+                (record.reply && (ancestorPosts.length || isSub)
+                  ? "border-t border-dashed " + BORDER_300
+                  : "")
+              }
+            >
+              {repostBy && (
+                <>
+                  <div className="material-icons mr-1">repeat</div>
+                  <div>Reposted by {repostBy.displayName}</div>
+                </>
+              )}
+            </div>
+          )}
+          {/* Profile row */}
+          <div className="flex flex-row leading-tight">
+            <Link
+              href={profileLink}
+              className="flex-1 flex flex-row flex-wrap hover:underline"
+            >
+              {/* Name / handle */}
+              <div className="font-semibold mr-1.5">{author.displayName}</div>
               <div className="text-slate-500 dark:text-slate-400">
                 {author.handle ===
                 "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
                   ? "i'm an asshole 💩"
                   : "@" + author.handle}
               </div>
+            </Link>
+            {/* timestamp */}
+            <div className="text-slate-500 dark:text-slate-400">
+              {moment(post.postView.indexedAt).fromNow()}
             </div>
-          </Link>
-          {/* timestamp */}
-          <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
-            {moment(post.postView.indexedAt).fromNow()}
           </div>
-        </div>
-        {/* Content row */}
-        <div className="mt-2">
-          {record.text.split("\n").map((line, index) => (
-            <Fragment key={line + "$" + index}>
-              {index !== 0 && <br />}
-              {line}
-            </Fragment>
-          ))}
-        </div>
-        {/* Images */}
-        {!!images?.length && (
-          <div className="mt-2 flex flex-row h-72 gap-4">
-            {images?.slice(0, 3).map((image) => (
-              <div
-                className="flex-1 rounded-md overflow-hidden"
-                key={image.thumb}
-              >
-                <img
-                  src={image.thumb}
-                  alt={image.alt}
-                  className="h-full w-full object-cover"
-                />
-              </div>
+          {/* Content row */}
+          <div className="mt-2">
+            {record.text.split("\n").map((line, index) => (
+              <Fragment key={line + "$" + index}>
+                {index !== 0 && <br />}
+                {line}
+              </Fragment>
             ))}
           </div>
-        )}
-        {/* Quote tweets */}
-        {embed?.record?.value?.text && (
-          <div
-            className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}
-          >
-            <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
-              <img
-                src={embed.record.author.avatar}
-                className="w-4 h-4 rounded-full mr-1"
-              />
-              <span className="font-semibold mr-1 leading-none">
-                {embed.record.author.displayName}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 leading-none">
-                {" "}
-                @{embed.record.author.handle}
-              </span>
-            </div>
-            <div className="bg-blue-4000">
-              {embed?.record?.value?.text?.split("\n").map((line, index) => (
-                <Fragment key={line + "$" + index}>
-                  {index !== 0 && <br />}
-                  {line}
-                </Fragment>
+          {/* Images */}
+          {!!images?.length && (
+            <div className="mt-2 flex flex-row h-72 gap-4">
+              {images?.slice(0, 3).map((image) => (
+                <div
+                  className="flex-1 rounded-md overflow-hidden"
+                  key={image.thumb}
+                >
+                  <img
+                    src={image.thumb}
+                    alt={image.alt}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               ))}
             </div>
-          </div>
-        )}
-        {/* Likes, RTs, etc. row */}
-        <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
-          <div className="material-icons mr-1">chat_bubble_outline</div>
-          <div className="mr-4">{post.postView.replyCount}</div>
-          <div
-            className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
-            onClick={async (e) => {
-              e.preventDefault();
-              toggleReposted();
-            }}
-          >
-            <div
-              className={
-                "material-icons " +
-                (isReposted
-                  ? "text-green-500"
-                  : "text-slate-700 dark:text-slate-300")
-              }
-              style={{
-                paddingRight: 0.66 / 16 + "rem",
-              }}
-            >
-              repeat
-            </div>
-          </div>
-          <div className="mr-4">{repostCount}</div>
-          <div
-            className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
-            onClick={async (e) => {
-              e.preventDefault();
-              toggleLiked();
-            }}
-          >
-            <div
-              className={
-                "material-icons " +
-                (isLiked
-                  ? "text-red-500"
-                  : "text-slate-700 dark:text-slate-300")
-              }
-              style={{
-                paddingRight: 0.66 / 16 + "rem",
-              }}
-            >
-              {isLiked ? "favorite" : "favorite_border"}
-            </div>
-          </div>
-          <div className="mr-4">{likeCount}</div>
-          {post.score && (
-            <>
-              {/* cog icon / settings icon bec it's a machine */}
-              <div className="material-icons ml-auto mr-1 text-slate-400">
-                settings
-              </div>
-              <div className="text-slate-400">
-                {/* {(post.score * 100).toFixed(2)} */}
-                {(
-                  Math.pow(Math.abs(post.score), 0.3) *
-                  Math.sign(post.score) *
-                  100
-                ).toFixed(0)}
-                % match
-              </div>
-            </>
           )}
+          {/* Quote tweets */}
+          {embed?.record?.value?.text && (
+            <div
+              className={
+                "mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300
+              }
+            >
+              <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
+                <img
+                  src={embed.record.author.avatar}
+                  className="w-4 h-4 rounded-full mr-1"
+                />
+                <span className="font-semibold mr-1 leading-none">
+                  {embed.record.author.displayName}
+                </span>
+                <span className="text-slate-500 dark:text-slate-400 leading-none">
+                  {" "}
+                  @{embed.record.author.handle}
+                </span>
+              </div>
+              <div className="bg-blue-4000">
+                {embed?.record?.value?.text?.split("\n").map((line, index) => (
+                  <Fragment key={line + "$" + index}>
+                    {index !== 0 && <br />}
+                    {line}
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Likes, RTs, etc. row */}
+          <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
+            <div className="material-icons mr-1">chat_bubble_outline</div>
+            <div className="mr-4">{post.postView.replyCount}</div>
+            <div
+              className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+              onClick={async (e) => {
+                e.preventDefault();
+                toggleReposted();
+              }}
+            >
+              <div
+                className={
+                  "material-icons " +
+                  (isReposted
+                    ? "text-green-500"
+                    : "text-slate-700 dark:text-slate-300")
+                }
+                style={{
+                  paddingRight: 0.66 / 16 + "rem",
+                }}
+              >
+                repeat
+              </div>
+            </div>
+            <div className="mr-4">{repostCount}</div>
+            <div
+              className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+              onClick={async (e) => {
+                e.preventDefault();
+                toggleLiked();
+              }}
+            >
+              <div
+                className={
+                  "material-icons " +
+                  (isLiked
+                    ? "text-red-500"
+                    : "text-slate-700 dark:text-slate-300")
+                }
+                style={{
+                  paddingRight: 0.66 / 16 + "rem",
+                }}
+              >
+                {isLiked ? "favorite" : "favorite_border"}
+              </div>
+            </div>
+            <div className="mr-4">{likeCount}</div>
+            {post.score && (
+              <>
+                {/* cog icon / settings icon bec it's a machine */}
+                <div className="material-icons ml-auto mr-1 text-slate-400">
+                  settings
+                </div>
+                <div className="text-slate-400">
+                  {/* {(post.score * 100).toFixed(2)} */}
+                  {(
+                    Math.pow(Math.abs(post.score), 0.3) *
+                    Math.sign(post.score) *
+                    100
+                  ).toFixed(0)}
+                  % match
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </Link>
