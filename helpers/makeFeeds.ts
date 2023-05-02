@@ -11,6 +11,7 @@ import {
 } from "./bsky";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
 import { SkylinePostType } from "./contentTypes";
+import { Response as GetPopularResponse } from "@atproto/api/dist/client/types/app/bsky/unspecced/getPopular";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 // INPUT:
@@ -31,7 +32,7 @@ export type TimelineConfigType = {
     description: string;
   };
   behaviour: {
-    baseFeed?: "following" | "popular" | "one-from-each";
+    baseFeed?: "following" | "popular" | "popular-nsfw" | "one-from-each";
     mutualsOnly?: boolean;
     language?: LanguageType;
     replies?: "all" | "none";
@@ -134,8 +135,25 @@ async function loadOneFromEachFeed(
     cursor: undefined,
   };
 }
+
+async function xrpcGetPopular(agent: BskyAgent, searchParams: object) {
+  const base = agent.api.xrpc.uri + "xrpc/app.bsky.unspecced.getPopular";
+  const search = new URLSearchParams(JSON.parse(JSON.stringify(searchParams)));
+  const url = `${base}?${search.toString()}`;
+  const response = await agent.api.xrpc.baseClient.fetch(
+    url,
+    "GET",
+    agent.api.xrpc.headers,
+    undefined
+  );
+  return {
+    success: response.status === 200,
+    data: response.body,
+    headers: response.headers,
+  } as unknown as GetPopularResponse;
+}
 async function loadBaseFeed(
-  baseFeed: "following" | "popular",
+  baseFeed: "following" | "popular" | "popular-nsfw",
   agent: BskyAgent,
   cursor?: string | undefined
 ): Promise<ProduceFeedOutput> {
@@ -145,9 +163,10 @@ async function loadBaseFeed(
           cursor,
           limit: 100,
         })
-      : await agent.api.app.bsky.unspecced.getPopular({
-          cursor,
+      : await xrpcGetPopular(agent, {
           limit: 100,
+          cursor,
+          includeNsfw: baseFeed === "popular-nsfw",
         });
 
   if (response.success) {
@@ -266,10 +285,16 @@ export function makePrincipledFeed(
       if (mutualsOnly) mutualsPromise = getMutuals(agent, egoHandle);
 
       // Load base feed
-      let { posts, cursor: newCursor } = ["following", "popular"].includes(
-        baseFeed
-      )
-        ? await loadBaseFeed(baseFeed as "following" | "popular", agent, cursor)
+      let { posts, cursor: newCursor } = [
+        "following",
+        "popular",
+        "popular-nsfw",
+      ].includes(baseFeed)
+        ? await loadBaseFeed(
+            baseFeed as "following" | "popular" | "popular-nsfw",
+            agent,
+            cursor
+          )
         : await loadOneFromEachFeed(agent, egoHandle, cursor);
 
       // 2. FILTERING

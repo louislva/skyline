@@ -58,6 +58,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Reddit-like scoring algo: recency \* quality, with a minimum threshold to appear
   - [x] <u>Infinite feeds - query with the next cursor</u>
   - [x] Unify custom-timeline & built-in timeline concept
+  - [x] NSFW what's hot (https://staging.bsky.app/profile/emily.bsky.team/post/3jup7xawstc25)
   - [ ] Three new base-feeds:
     - [ ] "In network" - basically two-degrees of following instead of one (optimize this by requiring at least x% of people you follow to follow that other person; or only taking the top 200 or whatever it is; maybe at some entropy / randomness to give small accs a chance)
     - [ ] "Liked Posters" - your timeline + the 100 posters most liked by your follows (recently)

@@ -26,7 +26,7 @@ function HorizontalSelector<T>(props: {
         return (
           <button
             className={
-              "outline-none p-2 flex-1 text-center " +
+              "outline-none p-2 grow shrink text-center " +
               BORDER_300 +
               (index !== 0 ? "border-l " : "") +
               (selected
@@ -161,11 +161,16 @@ export default function ConfigureTimelineModal(props: {
           }
         />
         <label className="mt-2">Base feed</label>
-        <HorizontalSelector<"following" | "mutuals" | "popular">
+        <HorizontalSelector<
+          "following" | "mutuals" | "popular" | "popular-nsfw"
+        >
           value={
             config.behaviour.mutualsOnly
               ? "mutuals"
-              : (config.behaviour.baseFeed as "following" | "popular")
+              : (config.behaviour.baseFeed as
+                  | "following"
+                  | "popular"
+                  | "popular-nsfw")
           }
           setValue={(value) => {
             setConfig({
@@ -181,6 +186,7 @@ export default function ConfigureTimelineModal(props: {
             ["Following", "following"],
             ["Mutuals", "mutuals"],
             ["What's Hot", "popular"],
+            ["What's Hot (NSFW)", "popular-nsfw"],
           ]}
         />
         <HorizontalSelector<"all" | "none">

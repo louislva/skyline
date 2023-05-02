@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@atproto/api": "^0.2.7",
+    "@atproto/api": "^0.2.11",
     "@sentry/nextjs": "^7.49.0",
     "@tailwindcss/typography": "^0.5.9",
     "@types/node": "18.15.11",

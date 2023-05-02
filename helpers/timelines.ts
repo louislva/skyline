@@ -156,7 +156,7 @@ export function behaviourToDescription(
 ): string {
   const segmentBase = behaviour.mutualsOnly
     ? "Mutuals feed"
-    : behaviour.baseFeed === "popular"
+    : behaviour.baseFeed === "popular" || behaviour.baseFeed === "popular-nsfw"
     ? "What's Hot feed"
     : "Following feed";
   const segmentReplies = behaviour.replies === "none" ? " without replies" : "";
