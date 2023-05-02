@@ -481,7 +481,7 @@ function ContentInline(props: {
       <div className="flex flex-col w-12 items-center">
         {/* Pfp */}
         {!isFirstPostInThread && (
-          <div className="absolute -mt-4 w-0.5 h-2 flex-1 bg-slate-500"></div>
+          <div className="absolute -mt-4 w-0.5 h-2 flex-1 bg-slate-300 dark:bg-slate-500"></div>
         )}
         {author.avatar && (
           <Link
@@ -494,7 +494,7 @@ function ContentInline(props: {
         {!isLastPostInThread && (
           <div
             className={
-              "w-0.5 flex-1 bg-slate-500 " +
+              "w-0.5 flex-1 bg-slate-300 dark:bg-slate-500 " +
               (isLastPostInThread ? "mt-2 -mb-0" : "mt-2 -mb-4")
             }
           />
