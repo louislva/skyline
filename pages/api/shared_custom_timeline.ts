@@ -33,15 +33,16 @@ export default async function handler(req: any, res: any) {
     const key = req.query.key;
     if (typeof key !== "string") return res.status(400).end();
     const result = await db.one(
-      `SELECT config, config_new, created_by_handle FROM shared_custom_timeline WHERE key = $/key/`,
+      `SELECT config, config_new, created_by_handle, installs FROM shared_custom_timeline WHERE key = $/key/`,
       {
         key,
       }
     );
     await db.one(
-      `UPDATE shared_custom_timeline SET installs = installs + 1 WHERE key = $/key/ RETURNING *`,
+      `UPDATE shared_custom_timeline SET installs = $/installs/ WHERE key = $/key/ RETURNING *`,
       {
         key,
+        installs: result.installs + 1,
       }
     );
     res.status(200).json(result);
