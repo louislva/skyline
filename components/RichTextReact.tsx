@@ -1,7 +1,7 @@
 import { LINK } from "@/helpers/styling";
 import { BskyAgent, RichText } from "@atproto/api";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 export default function RichTextReact(props: {
   agent: BskyAgent;
@@ -58,25 +58,30 @@ export default function RichTextReact(props: {
           <>
             {segment.text.split("\n").map((line, index) => {
               return (
-                <>
+                <Fragment key={index}>
                   {index !== 0 && <br />}
                   {segment.type === "link" ? (
-                    <a
-                      href={segment.value}
+                    <Link
+                      href={segment.value || ""}
                       target="_blank"
                       rel="noreferrer"
                       className={LINK}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {line}
-                    </a>
+                    </Link>
                   ) : segment.type === "mention" ? (
-                    <Link href={`/profile/${segment.value}`} className={LINK}>
+                    <Link
+                      href={`/profile/${segment.value}`}
+                      className={LINK}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {line}
                     </Link>
                   ) : (
                     line
                   )}
-                </>
+                </Fragment>
               );
             })}
           </>
