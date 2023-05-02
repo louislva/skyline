@@ -122,7 +122,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   className={
                     "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
                     (isFollowing
-                      ? "bg-slate-200 dark:bg-slate-700 text-white " +
+                      ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white " +
                         BORDER_300
                       : "bg-blue-500 text-white ") +
                     (postingFollow ? "opacity-50" : "")
