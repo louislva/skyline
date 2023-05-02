@@ -80,9 +80,9 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Post top level
   - [x] Click and see profiles
   - [x] Follow / unfollow people
+  - [x] Click and see threads
   - [ ] Quote post tweets
   - [ ] Post replies
-  - [x] Click and see threads
   - [ ] List likes, reposts, quote posts (quote posts you can do by using the Bsky search endpoint & looking for the link)
   - [ ] Notifications
   - [ ] Links in Tweets
@@ -129,7 +129,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
 - [ ] Misc
   - [ ] "Posted from Skyline" flair
   - [ ] "Uses Skyline" flair
-  - [ ] Private prompts feature (e.g. saved in DB, executed on backend, if you like it you can pay to keep using it; split profits 80% with creator)
+  - [ ] Private prompts feature (e.g. saved in DB, executed on backend, if you like it you can pay the creator to keep it after the trial)
   - [ ] Code-powered timelines (ran in a very restricted VM with a very restricted version of BskyAgent - read only, basically)
   - [ ] Github Link in Footer
   - [ ] Create a list of top developers who worked on Skyline (with their profile links) and put it in the sidebar

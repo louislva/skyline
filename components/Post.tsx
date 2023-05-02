@@ -345,7 +345,7 @@ function ContentStandalone(props: {
       <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
         <div className="material-icons mr-1">chat_bubble_outline</div>
         <div className="mr-4">{post.postView.replyCount}</div>
-        <div
+        <button
           className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
           onClick={async (e) => {
             e.preventDefault();
@@ -365,9 +365,9 @@ function ContentStandalone(props: {
           >
             repeat
           </div>
-        </div>
+        </button>
         <div className="mr-4">{repostCount}</div>
-        <div
+        <button
           className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
           onClick={async (e) => {
             e.preventDefault();
@@ -385,7 +385,7 @@ function ContentStandalone(props: {
           >
             {isLiked ? "favorite" : "favorite_border"}
           </div>
-        </div>
+        </button>
         <div className="mr-4">{likeCount}</div>
         {post.score && (
           <>
@@ -593,7 +593,7 @@ function ContentInline(props: {
         <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
           <div className="material-icons mr-1">chat_bubble_outline</div>
           <div className="mr-4">{post.postView.replyCount}</div>
-          <div
+          <button
             className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
             onClick={async (e) => {
               e.preventDefault();
@@ -613,9 +613,9 @@ function ContentInline(props: {
             >
               repeat
             </div>
-          </div>
+          </button>
           <div className="mr-4">{repostCount}</div>
-          <div
+          <button
             className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
             onClick={async (e) => {
               e.preventDefault();
@@ -635,7 +635,7 @@ function ContentInline(props: {
             >
               {isLiked ? "favorite" : "favorite_border"}
             </div>
-          </div>
+          </button>
           <div className="mr-4">{likeCount}</div>
           {post.score && (
             <>
