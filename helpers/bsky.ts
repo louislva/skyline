@@ -85,7 +85,7 @@ export async function getMutuals(
   const mutuals = follows.filter((f) => isDidAFollower[f.did]);
   return mutuals;
 }
-async function getThread(agent: BskyAgent, uri: string) {
+export async function getThread(agent: BskyAgent, uri: string) {
   if (threadCache.get(uri)) return threadCache.get(uri)!;
 
   const response = await agent.getPostThread({
@@ -116,6 +116,20 @@ export function unrollThread(response: GetPostThreadResponse) {
   }
 
   return newPosts;
+}
+export function threadResponseToSkylinePost(
+  response: GetPostThreadResponse
+): SkylinePostType {
+  const data = response.data;
+  const thread = data.thread;
+  const unrolled = unrollThread(response);
+  const ancestors = unrolled.slice(0, unrolled.length - 1);
+  const post = unrolled[unrolled.length - 1];
+
+  return {
+    ...post,
+    replyingTo: ancestors,
+  };
 }
 export async function mergeConversationsContinual(
   agent: BskyAgent,

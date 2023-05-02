@@ -154,7 +154,7 @@ export default function Timeline(props: {
               agent={agent}
               key={post.postView.cid + "index" + index}
               post={post}
-              isLastPost={index === posts.length - 1}
+              isLastPostInFeed={index === posts.length - 1}
             />
           ))}
           <button
