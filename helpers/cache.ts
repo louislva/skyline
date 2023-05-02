@@ -52,9 +52,13 @@ export default class Cache<T> {
       .find((cache) => cache[1][key])?.[1][key];
   }
   set(key: string, value: T) {
-    const nowChunk = Math.floor(Date.now() / this.chunkLength);
-    this.cacheByTimestamp[nowChunk] = this.cacheByTimestamp[nowChunk] || {};
-    this.cacheByTimestamp[nowChunk][key] = value;
-    this.save();
+    try {
+      const nowChunk = Math.floor(Date.now() / this.chunkLength);
+      this.cacheByTimestamp[nowChunk] = this.cacheByTimestamp[nowChunk] || {};
+      this.cacheByTimestamp[nowChunk][key] = value;
+      this.save();
+    } catch (error) {
+      console.error("Error saving to cache: ", error);
+    }
   }
 }
