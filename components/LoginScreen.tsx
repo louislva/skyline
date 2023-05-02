@@ -1,34 +1,23 @@
-import { LoginResponseDataType } from "@/helpers/bsky";
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
 import { useState } from "react";
 
-export default function LoginScreen(props: {
-  setLoginResponseData: (data: LoginResponseDataType | null) => void;
-  agent: BskyAgent;
-}) {
-  const { setLoginResponseData, agent } = props;
-  const login = (username: string, password: string) => {
+export default function LoginScreen(props: { agent: BskyAgent }) {
+  const { agent } = props;
+  const login = async (username: string, password: string) => {
     setError(null);
-    agent
+    await agent
       .login({
         identifier: username,
         password: password,
       })
       .then((response) => {
-        if (response.success) {
-          setLoginResponseData({
-            ...response.data,
-          });
-        } else {
-          // Error
-          setLoginResponseData(null);
+        if (!response.success) {
           setError("Error");
         }
       })
       .catch((err) => {
         // Error
-        setLoginResponseData(null);
         setError(err.message);
       });
   };

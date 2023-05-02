@@ -97,15 +97,8 @@ export default function App({
 }) {
   useFirefoxPolyfill();
 
-  // Bluesky API
-  const agent = useRef<BskyAgent>(
-    new BskyAgent({
-      service: "https://bsky.social",
-    })
-  ).current;
-
   // Auth stuff
-  const { egoHandle, egoDid, setLoginResponseData } = useAuthorization(agent);
+  const { agent, egoHandle, egoDid, setLoginResponseData } = useAuthorization();
 
   // Styling for body
   useBodyClassName("bg-slate-50 dark:bg-slate-900");
@@ -200,10 +193,7 @@ export default function App({
             <TweetComposer agent={agent} />
           </>
         ) : (
-          <LoginScreen
-            setLoginResponseData={setLoginResponseData}
-            agent={agent}
-          />
+          <LoginScreen agent={agent} />
         )}
       </div>
       <Analytics />
