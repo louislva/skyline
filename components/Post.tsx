@@ -325,6 +325,7 @@ function ContentStandalone(props: {
           className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
           onClick={async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             toggleReposted();
           }}
         >
@@ -347,6 +348,7 @@ function ContentStandalone(props: {
           className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
           onClick={async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             toggleLiked();
           }}
         >
@@ -547,6 +549,7 @@ function ContentInline(props: {
             className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
             onClick={async (e) => {
               e.preventDefault();
+              e.stopPropagation();
               toggleReposted();
             }}
           >
@@ -569,6 +572,7 @@ function ContentInline(props: {
             className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
             onClick={async (e) => {
               e.preventDefault();
+              e.stopPropagation();
               toggleLiked();
             }}
           >
