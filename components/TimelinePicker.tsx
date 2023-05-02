@@ -4,6 +4,7 @@ import { BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import Modal from "./Modal";
 
 export default function TimelinePicker(props: {
   timelineId: TimelineIdType;
@@ -177,6 +178,7 @@ function ShareTimelineButton(props: {
 }) {
   const { timelineConfig, egoHandle } = props;
   const [loading, setLoading] = useState<boolean>(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
@@ -191,58 +193,74 @@ function ShareTimelineButton(props: {
   }, [copied]);
 
   return (
-    <button
-      className={
-        "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 outline-none " +
-        (loading ? "opacity-60 cursor-default" : "")
-      }
-      onClick={async () => {
-        if (loading) return;
-        setLoading(true);
-        const response = await fetch("/api/shared_custom_timeline", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            config_new: timelineConfig,
-            created_by_handle: egoHandle,
-          }),
-        })
-          .then((res) => {
-            if (res.ok) {
-              res.json().then((data) => {
-                // copy link to clipboard
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/?tl=${data.key}`
-                );
-
-                setLoading(false);
-                setCopied(true);
-              });
-            } else {
-              throw new Error(
-                "Couldn't POST shared_custom_timeline: " + res.status
-              );
-            }
-          })
-          .catch((error) => {
-            setLoading(false);
-            throw error;
-          });
-      }}
-    >
-      {copied ? (
-        <>
-          <span className="material-icons mr-1">content_copy</span>
-          Copied link!
-        </>
-      ) : (
-        <>
-          <span className="material-icons mr-1">share</span>
-          Share timeline prompt
-        </>
+    <>
+      {shareLink && (
+        <Modal
+          close={() => {
+            setShareLink(null);
+          }}
+        >
+          <div className="flex flex-col p-3">
+            <h3 className="text-lg mb-2">Here's your shared timeline link:</h3>
+            <div className="p-2 rounded-md bg-slate-200 dark:bg-slate-700 flex flex-row">
+              <input
+                className="flex-1 text-black dark:text-slate-50 flex-1 bg-transparent outline-none"
+                value={shareLink}
+              />
+              <button
+                className="text-black dark:text-slate-50 flex flex-row items-center"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareLink);
+                  setCopied(true);
+                }}
+              >
+                <span className="material-icons mx-1">file_copy</span>
+                {copied ? "Copied!" : "Copy link"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
-    </button>
+      <button
+        className={
+          "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 outline-none " +
+          (loading ? "opacity-60 cursor-default" : "")
+        }
+        onClick={async () => {
+          if (loading) return;
+          setLoading(true);
+          const response = await fetch("/api/shared_custom_timeline", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              config_new: timelineConfig,
+              created_by_handle: egoHandle,
+            }),
+          })
+            .then((res) => {
+              if (res.ok) {
+                res.json().then((data) => {
+                  // copy link to clipboard
+                  setLoading(false);
+                  setShareLink(`${window.location.origin}/?tl=${data.key}`);
+                });
+              } else {
+                throw new Error(
+                  "Couldn't POST shared_custom_timeline: " + res.status
+                );
+              }
+            })
+            .catch((error) => {
+              setLoading(false);
+              throw error;
+            });
+        }}
+      >
+        <span className="material-icons mr-1">share</span>
+        Share timeline prompt
+      </button>
+    </>
   );
 }

@@ -16,7 +16,7 @@ export default function Modal(props: {
 
   return (
     <div
-      className="fixed top-0 left-0 p-4 py-8 w-screen h-screen bg-black/50 backdrop-blur-md flex flex-row justify-center items-center"
+      className="fixed top-0 left-0 p-4 py-8 w-screen h-screen bg-black/50 backdrop-blur-md flex flex-row justify-center items-center z-50"
       onClick={() => close()}
     >
       <div
