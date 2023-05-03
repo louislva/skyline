@@ -37,10 +37,12 @@ export default function PostComposer(props: {
       ...(replyingTo ? { reply: replyingTo } : {}),
       ...(quotePost
         ? {
-            $type: "app.bsky.embed.record",
-            record: {
-              cid: quotePost.postView.cid,
-              uri: quotePost.postView.uri,
+            embed: {
+              $type: "app.bsky.embed.record",
+              record: {
+                cid: quotePost.postView.cid,
+                uri: quotePost.postView.uri,
+              },
             },
           }
         : {}),
