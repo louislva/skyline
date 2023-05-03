@@ -687,13 +687,21 @@ function RepostButton(props: {
           >
             <button
               className="flex-1 hover:bg-black/10 dark:hover:bg-white/10 flex flex-row items-center justify-start text-left"
-              onClick={toggleReposted}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleReposted();
+                setDropdownOpen(false);
+              }}
             >
               <span className="material-icons px-3">repeat</span>Retweet
             </button>
             <button
               className="flex-1 hover:bg-black/10 dark:hover:bg-white/10 flex flex-row items-center justify-start text-left"
-              onClick={quoteTweet}
+              onClick={(e) => {
+                e.stopPropagation();
+                quoteTweet();
+                setDropdownOpen(false);
+              }}
             >
               <span className="material-icons px-3">edit_note</span>Quote tweet
             </button>
@@ -705,7 +713,11 @@ function RepostButton(props: {
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          setDropdownOpen(true);
+          if (isReposted) {
+            toggleReposted();
+          } else {
+            setDropdownOpen(true);
+          }
         }}
       >
         <div

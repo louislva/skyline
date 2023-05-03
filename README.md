@@ -84,11 +84,13 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Click and see threads
   - [x] Links in Posts
   - [x] Post replies
-  - [ ] Quote post tweets
+  - [x] Quote post tweets
   - [ ] List likes, reposts, quote posts (quote posts you can do by using the Bsky search endpoint & looking for the link; https://staging.bsky.app/profile/liz.rip/post/3jup5h3rucq2g)
   - [ ] Notifications
   - [ ] Click images to see expanded
   - [ ] "Interactions" tab on profiles
+  - [ ] Delete tweets
+  - [ ] Own profile link + editing
 - [ ] Project "Performance Optimization"
   - [ ] Don't render out of view - it's lagging intensely on mobile
   - [ ] Much smaller images! (both in size & jpg compression)
@@ -138,7 +140,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
 
 ## Bugs list
 
-- [ ] Installs don't seem to increment
+- [x] Installs don't seem to increment
 - [ ] Very slow on mobile
 - [ ] Load more (upwards at least) doesn't load replies / threads
 - [ ] Load more downwards takes your scroll with you
