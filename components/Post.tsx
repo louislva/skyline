@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import RichTextReact from "./RichTextReact";
 import { useRouter } from "next/router";
+import { useControllerContext } from "./ControllerContext";
 
 type ImageType = {
   alt: string;
@@ -241,6 +242,8 @@ function ContentStandalone(props: {
 
   const repostBy = post.repostBy;
 
+  const { setComposingPost } = useControllerContext();
+
   return (
     <div
       className={
@@ -329,7 +332,24 @@ function ContentStandalone(props: {
       {embed?.record?.value && <QuotePost embed={embed} />}
       {/* Likes, RTs, etc. row */}
       <div className="flex flex-row items-center text-base mt-3 text-slate-700 dark:text-slate-300 leading-none">
-        <div className="material-icons mr-1">chat_bubble_outline</div>
+        <button
+          className="rounded-full hover:bg-amber-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setComposingPost({
+              replyingTo: {
+                parent: post.postView,
+                root: ancestorPosts.concat([post])[0]?.postView,
+              },
+              text: "",
+            });
+          }}
+        >
+          <div className="material-icons text-slate-700 dark:text-slate-300">
+            chat_bubble_outline
+          </div>
+        </button>
         <div className="mr-4">{post.postView.replyCount}</div>
         <button
           className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
@@ -490,7 +510,7 @@ function ContentInline(props: {
         )}
       </div>
       {/* Content Column */}
-      <div className="relative flex flex-col flex-1 pl-3 overflow-hidden">
+      <div className="relative flex flex-col flex-1 pl-3">
         {/* Reply / repost row */}
         {repostBy && (
           <div
@@ -635,35 +655,37 @@ function ContentInline(props: {
   );
 }
 
-function QuotePost(props: { embed: EmbedType }) {
-  const { embed } = props;
-  const link = `/profile/${embed.record?.author.handle}/post/${
-    embed.record?.uri?.split("/")?.slice(-1)?.[0]
+export function QuotePost(props: { embed: EmbedType; linkDisabled?: boolean }) {
+  const { record } = props.embed;
+  const { linkDisabled } = props;
+  const link = `/profile/${record?.author.handle}/post/${
+    record?.uri?.split("/")?.slice(-1)?.[0]
   }`;
-  return (
-    <Link href={link}>
-      <div className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}>
-        <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
-          <img
-            src={embed.record?.author.avatar}
-            className="w-4 h-4 rounded-full mr-1"
-          />
-          <span className="font-semibold mr-1 leading-none">
-            {embed.record?.author.displayName}
-          </span>
-          <span className="text-slate-500 dark:text-slate-400 leading-none">
-            @{embed.record?.author.handle}
-          </span>
-        </div>
-        <div className="bg-blue-4000">
-          {embed?.record?.value?.text?.split("\n").map((line, index) => (
-            <Fragment key={line + "$" + index}>
-              {index !== 0 && <br />}
-              {line}
-            </Fragment>
-          ))}
-        </div>
+
+  const body = (
+    <div className={"mt-2 border rounded-md p-2 py-2 text-sm " + BORDER_300}>
+      <div className="flex flex-row items-center h-4 text-slate-700 dark:text-slate-300 bg-green-4000 mb-1">
+        <img
+          src={record?.author.avatar}
+          className="w-4 h-4 rounded-full mr-1"
+        />
+        <span className="font-semibold mr-1 leading-none">
+          {record?.author.displayName}
+        </span>
+        <span className="text-slate-500 dark:text-slate-400 leading-none">
+          @{record?.author.handle}
+        </span>
       </div>
-    </Link>
+      <div className="bg-blue-4000">
+        {record?.value?.text?.split("\n").map((line, index) => (
+          <Fragment key={line + "$" + index}>
+            {index !== 0 && <br />}
+            {line}
+          </Fragment>
+        ))}
+      </div>
+    </div>
   );
+
+  return linkDisabled ? body : <Link href={link}>{body}</Link>;
 }

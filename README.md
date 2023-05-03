@@ -83,8 +83,8 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Follow / unfollow people
   - [x] Click and see threads
   - [x] Links in Posts
+  - [x] Post replies
   - [ ] Quote post tweets
-  - [ ] Post replies
   - [ ] List likes, reposts, quote posts (quote posts you can do by using the Bsky search endpoint & looking for the link; https://staging.bsky.app/profile/liz.rip/post/3jup5h3rucq2g)
   - [ ] Notifications
   - [ ] Click images to see expanded

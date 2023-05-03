@@ -1,6 +1,9 @@
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import Post from "@/components/Post";
-import { getThread, threadResponseToSkylinePost } from "@/helpers/bsky";
+import {
+  getThreadCacheFree,
+  threadResponseToSkylinePost,
+} from "@/helpers/bsky";
 import { ExpandedPostView, SkylinePostType } from "@/helpers/contentTypes";
 import { BORDER_300 } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
@@ -41,7 +44,7 @@ export default function ThreadScreen(props: ThreadScreenProps) {
     if (did && cid) {
       const uri = `at://${did}/app.bsky.feed.post/${cid}`;
 
-      getThread(agent, uri).then((response) => {
+      getThreadCacheFree(agent, uri).then((response) => {
         setPost(threadResponseToSkylinePost(response));
         setReplies(
           (response.data.thread.replies as { post: ExpandedPostView }[])?.map(

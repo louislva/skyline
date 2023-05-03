@@ -85,14 +85,23 @@ export async function getMutuals(
   const mutuals = follows.filter((f) => isDidAFollower[f.did]);
   return mutuals;
 }
-export async function getThread(agent: BskyAgent, uri: string) {
-  if (threadCache.get(uri)) return threadCache.get(uri)!;
 
+export async function getThreadCacheFree(
+  agent: BskyAgent,
+  uri: string
+): Promise<GetPostThreadResponse> {
   const response = await agent.getPostThread({
     uri,
   });
   if (response.success) threadCache.set(uri, response);
   return response;
+}
+async function getThread(
+  agent: BskyAgent,
+  uri: string
+): Promise<GetPostThreadResponse> {
+  if (threadCache.get(uri)) return threadCache.get(uri)!;
+  return await getThreadCacheFree(agent, uri);
 }
 export function getThreadCacheOnly(uri: string): GetPostThreadResponse | null {
   return threadCache.get(uri) || null;

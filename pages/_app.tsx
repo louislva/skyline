@@ -24,7 +24,11 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
 import ProfileScreen from "./profile/[handle]";
-import TweetComposer from "@/components/TweetComposer";
+import PostComposer from "@/components/PostComposer";
+import {
+  ComposingPostType,
+  ControllerContext,
+} from "@/components/ControllerContext";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -142,6 +146,8 @@ export default function App({
 
   const router = useRouter();
 
+  const [composingPost, setComposingPost] = useState<ComposingPostType>(null);
+
   return (
     <>
       <Head>
@@ -159,7 +165,7 @@ export default function App({
           }
         />
         {egoHandle ? (
-          <>
+          <ControllerContext.Provider value={{ setComposingPost }}>
             <TimelinePicker
               timelineId={timelineId}
               setTimelineId={setTimelineId}
@@ -197,8 +203,13 @@ export default function App({
                 editingCustomAITimelineId={editingCustomAITimelineId}
               />
             )}
-            <TweetComposer agent={agent} />
-          </>
+            <PostComposer
+              agent={agent}
+              egoHandle={egoHandle}
+              composingPost={composingPost}
+              setComposingPost={setComposingPost}
+            />
+          </ControllerContext.Provider>
         ) : (
           <LoginScreen
             setLoginResponseData={setLoginResponseData}
