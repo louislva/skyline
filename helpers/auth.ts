@@ -1,6 +1,6 @@
 import { BskyAgent } from "@atproto/api";
 import * as jwt from "jsonwebtoken";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { LoginResponseDataType } from "./bsky";
 import { useLocalStorageState } from "./hooks";
 
@@ -18,12 +18,36 @@ export type AccessJwtType = {
   sub: string;
 };
 
-export function useAuthorization(agent: BskyAgent) {
+export function useAuthorization() {
   const [loginResponseData, setLoginResponseData] =
     useLocalStorageState<LoginResponseDataType | null>(
       "@loginResponseData",
       null
     );
+
+  const agent = useRef<BskyAgent>(
+    new BskyAgent({
+      service: "https://bsky.social",
+      persistSession: (evt, session) => {
+        switch (evt) {
+          case "create":
+            if (!session) throw new Error("should be unreachable");
+            setLoginResponseData(session);
+            break;
+          case "create-failed":
+            setLoginResponseData(null);
+            break;
+          case "update":
+            if (!session) throw new Error("should be unreachable");
+            setLoginResponseData(session);
+            break;
+          case "expired":
+            setLoginResponseData(null);
+            break;
+        }
+      },
+    })
+  ).current;
 
   const egoHandle = loginResponseData?.handle;
   const egoDid = loginResponseData?.did;
@@ -35,20 +59,13 @@ export function useAuthorization(agent: BskyAgent) {
   const timeUntilLoginExpire = loginExpiration
     ? loginExpiration * 1000 - Date.now()
     : null;
-  useEffect(() => {
-    if (timeUntilLoginExpire) {
-      const timeout = setTimeout(() => {
-        setLoginResponseData(null);
-      }, Math.max(timeUntilLoginExpire, 0));
 
-      return () => clearTimeout(timeout);
-    }
-  }, [timeUntilLoginExpire]);
   useEffect(() => {
+    // TODO: should !agent.session be there?
     if (loginResponseData && !agent.session) {
       agent.resumeSession(loginResponseData);
     }
   }, [loginResponseData]);
 
-  return { egoHandle, egoDid, setLoginResponseData };
+  return { agent, egoHandle, egoDid, setLoginResponseData };
 }
