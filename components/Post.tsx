@@ -260,7 +260,16 @@ function ContentStandalone(props: {
           {repostBy && (
             <>
               <div className="material-icons mr-1">repeat</div>
-              <div>Reposted by {repostBy.displayName}</div>
+              <div>
+                Reposted by{" "}
+                <Link
+                  href={`/profile/${repostBy.handle}`}
+                  className="hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {repostBy.displayName}
+                </Link>
+              </div>
             </>
           )}
         </div>
@@ -271,6 +280,7 @@ function ContentStandalone(props: {
         <Link
           href={`/profile/${author.handle}`}
           className="flex flex-row hover:underline"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Pfp */}
           {author.avatar && (
@@ -465,6 +475,7 @@ function ContentInline(props: {
           <Link
             href={profileLink}
             className="w-12 h-12 rounded-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
             <img src={author.avatar} alt={author.name + "'s avatar"} />
           </Link>
@@ -479,7 +490,7 @@ function ContentInline(props: {
         )}
       </div>
       {/* Content Column */}
-      <div className="relative flex flex-col flex-1 pl-4 pr-2">
+      <div className="relative flex flex-col flex-1 pl-3 overflow-hidden">
         {/* Reply / repost row */}
         {repostBy && (
           <div
@@ -493,7 +504,16 @@ function ContentInline(props: {
             {repostBy && (
               <>
                 <div className="material-icons mr-1">repeat</div>
-                <div>Reposted by {repostBy.displayName}</div>
+                <div>
+                  Reposted by{" "}
+                  <Link
+                    href={`/profile/${repostBy.handle}`}
+                    className="hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {repostBy.displayName}
+                  </Link>
+                </div>
               </>
             )}
           </div>
@@ -503,6 +523,7 @@ function ContentInline(props: {
           <Link
             href={profileLink}
             className="flex-1 flex flex-row flex-wrap hover:underline"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Name / handle */}
             <div className="font-semibold mr-1.5">{author.displayName}</div>
@@ -519,7 +540,7 @@ function ContentInline(props: {
           </div>
         </div>
         {/* Content row */}
-        <div className="mt-2">
+        <div className="mt-2 break-words">
           <RichTextReact agent={agent} text={record.text || ""} />
         </div>
         {/* Images */}
