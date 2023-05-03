@@ -14,11 +14,11 @@
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "yarn install"
+	"postCreateCommand": "yarn install",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	// kept getting EACCES: permission denied, unlink '/workspaces/skyline/.next/server/_error.js without this change
+	"remoteUser": "root"
 }
