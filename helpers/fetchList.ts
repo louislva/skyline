@@ -2,6 +2,7 @@ import { BskyAgent } from "@atproto/api";
 import { FeedViewPost } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import { feedViewPostToSkylinePost } from "./bsky";
 import { ProduceFeedOutput } from "./makeFeeds";
+import { RecordType } from "./contentTypes";
 
 type ListFeedState = {
   [key: string]: { feed: FeedViewPost[]; cursor: string | undefined };
@@ -38,10 +39,11 @@ export default class ListFetcher {
     }
   }
 
-  N_FETCH = 1;
+  N_FETCH = 5;
   MAX_LOOPS = 15;
 
   call = async (): Promise<ProduceFeedOutput & { raw: ListFeedState }> => {
+    const oldestRendered = this.getYoungestOldest() || Date.now() + 60000;
     if (Object.keys(this.state).length === 0) {
       // no user data
       await Promise.all(
@@ -56,25 +58,49 @@ export default class ListFetcher {
     }
 
     await this.backfill();
-    const sorted = this.sortedAndFormattedPosts();
+    const oldestToRender = this.getYoungestOldest();
+    const sorted = this.sortedAndFormattedPosts(oldestRendered, oldestToRender);
     return { posts: sorted, cursor: undefined, raw: this.state };
     // TODO return a useful cursor and maybe the user it's for too
     // (unless cursors aren't user-specific idk)
   };
 
-  sortedAndFormattedPosts = () =>
-    Object.values(this.state)
+  getYoungestOldest = () => {
+    const youngestOldest = Math.max(
+      0,
+      // Math.max: get the newest/youngest of these values:
+      ...Object.values(this.state).map((user) => {
+        // Math.min(): get earliest/oldest post for this user
+        return Math.min(
+          ...user.feed.map((post) => this.getDateFromPost(post).getTime())
+        );
+      })
+    );
+    return youngestOldest;
+  };
+
+  sortedAndFormattedPosts = (
+    oldestRendered: number,
+    oldestToRender: number
+  ) => {
+    return Object.values(this.state)
       .map((x) => x.feed)
       .flat()
+      .filter(
+        (post: FeedViewPost) =>
+          this.getDateFromPost(post).getTime() >= oldestToRender && // newer than the oldest acceptable thing to render
+          this.getDateFromPost(post).getTime() <= oldestRendered // older than the oldest thing that's already rendered
+      )
       .sort((a: FeedViewPost, b: FeedViewPost) => {
         const dateA = this.getDateFromPost(a);
         const dateB = this.getDateFromPost(b);
         return dateB.getTime() - dateA.getTime();
       })
       .map(feedViewPostToSkylinePost);
-
-  getDateFromPost = (post: FeedViewPost): Date =>
-    new Date((post.post.record as any).createdAt);
+  };
+  getDateFromPost = (post: FeedViewPost): Date => {
+    return new Date(((post?.post.record || {}) as RecordType).createdAt || 0);
+  };
 
   getOldestTimestamp = () => {
     let oldestTimestamp = new Date();
@@ -161,5 +187,3 @@ export default class ListFetcher {
     return output;
   };
 }
-
-new ListFetcher(12 as any, [], {});
