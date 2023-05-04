@@ -356,6 +356,10 @@ function ContentStandalone(props: {
         (!isLastPostInFeed ? "border-b " : "") +
         BORDER_300
       }
+      // first render, scroll to
+      ref={(ref) => {
+        ref?.scrollIntoView();
+      }}
     >
       {/* Reply / repost row */}
       {(record.reply || repostBy) && (
