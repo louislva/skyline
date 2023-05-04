@@ -21,6 +21,9 @@ module.exports = {
         136: "34rem",
         144: "36rem",
       },
+      screens: {
+        xs: "520px",
+      },
     },
     fontFamily: {
       sans: ["Inter", "sans-serif"],

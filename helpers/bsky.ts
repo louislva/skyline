@@ -10,7 +10,10 @@ import { ExpandedPostView, RecordType, SkylinePostType } from "./contentTypes";
 
 let followsCache: ProfileView[] | null = null;
 let followersCache: ProfileView[] | null = null;
-let threadCache = new Cache<GetPostThreadResponse>("threadCache");
+let threadCache = new Cache<GetPostThreadResponse>(
+  "threadCache",
+  1000 * 60 * 10 // 10 minutes
+);
 
 export async function getFollows(
   agent: BskyAgent,
