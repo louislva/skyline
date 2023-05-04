@@ -1,6 +1,6 @@
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
-import { BORDER_300 } from "@/helpers/styling";
+import { BORDER_200, BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -27,6 +27,7 @@ export default function TimelinePicker(props: {
     timelines,
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
+    // TODO: reintroduce language setting
     language,
     setLanguage,
   } = props;
@@ -36,139 +37,134 @@ export default function TimelinePicker(props: {
 
   const isShowingTimelines = ["", "/"].includes(router.pathname);
 
-  return (
-    <div className="flex flex-col items-center mb-4">
-      <div className="flex flex-col lg:flex-row items-center">
-        <div
-          className={
-            "flex flex-col lg:flex-row justify-start rounded-md bg-white dark:bg-slate-800 border overflow-hidden" +
-            BORDER_300
-          }
-        >
-          {Object.keys(timelines).map((id, index) => {
-            const isSelected = isShowingTimelines && id === timelineId;
+  const [dropdown, setDropdown] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && dropdown) {
+      const func = (e: any) => {
+        if (!e.target.closest("#timelinePickerButton")) {
+          setDropdown(false);
+        }
+      };
+      window.addEventListener("click", func);
+      return () => {
+        window.removeEventListener("click", func);
+      };
+    }
+  }, [dropdown]);
 
-            return (
-              <button
-                key={id}
-                className={`outline-none p-2 h-10 flex flex-row items-center ${BORDER_300} ${
-                  isSelected
-                    ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
-                    : ""
-                } ${index !== 0 ? "lg:border-l " : ""}`}
-                onClick={() => {
-                  if (!isShowingTimelines) {
-                    router.push({
-                      pathname: "/",
-                    });
-                  }
-                  setTimelineId(id as TimelineIdType);
-                  setHoveredTimelineId(null);
-                }}
-                onMouseEnter={() => {
-                  setHoveredTimelineId(id as TimelineIdType);
-                }}
-                onMouseMove={() => {
-                  setHoveredTimelineId(id as TimelineIdType);
-                }}
-                onMouseLeave={() => {
-                  setHoveredTimelineId(null);
-                }}
-              >
-                <span className="material-icons mr-2">
-                  {timelines[id].icon}
-                </span>
-                <span>{timelines[id].name}</span>
-              </button>
-            );
-          })}
-        </div>
+  return (
+    <div
+      className="flex-1 flex flex-col items-stretch px-3"
+      style={{
+        maxWidth: 80 / 4 + "rem",
+      }}
+    >
+      <div className="flex flex-row gap-1 items-center">
         <button
-          className={
-            "p-2 flex flex-row items-center justify-center bg-white dark:bg-slate-800 border rounded-md ml-0 lg:ml-2 mt-2 lg:mt-0 lg:w-8 h-8 px-2 lg:px-0 outline-none " +
-            BORDER_300
-          }
+          id="timelinePickerButton"
+          className={`flex-1 rounded-md border overflow-hidden outline-none p-2 h-8 flex flex-row items-center ${BORDER_300}`}
           onClick={() => {
-            setCreateTimelineModalOpen(true);
+            if (!isShowingTimelines) {
+              router.push({
+                pathname: "/",
+              });
+            } else {
+              setDropdown(!dropdown);
+            }
           }}
         >
-          <span className="material-icons mr">add</span>
-          <span className="inline lg:hidden pl-1">Custom Timeline</span>
+          <span className="material-icons mr-2">
+            {timelines[timelineId].icon}
+          </span>
+          <span className="text-xs xs:text-base flex-1">
+            {timelines[timelineId].name}
+          </span>
+          <span className="material-icons ml-2">
+            {/* dropdown */}
+            expand_more
+          </span>
         </button>
+        {!!customTimelineConfigs[timelineId] && (
+          <>
+            <div className=""></div>
+            <ShareTimelineButton
+              key={timelineId}
+              timelineConfig={customTimelineConfigs[timelineId]}
+              egoHandle={egoHandle}
+            />
+            <button
+              className="h-6 w-6 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
+              onClick={() => {
+                setEditingCustomAITimelineId(timelineId);
+              }}
+            >
+              <span className="material-icons">edit</span>
+            </button>
+          </>
+        )}
       </div>
+      <div className="relative h-0">
+        {dropdown && (
+          <div
+            className={
+              "w-full absolute mt-1 flex flex-col justify-start rounded-md bg-white dark:bg-slate-800 border overflow-hidden" +
+              BORDER_300
+            }
+          >
+            {Object.keys(timelines).map((id, index) => {
+              const isSelected = isShowingTimelines && id === timelineId;
 
-      {(isShowingTimelines || hoveredTimelineId) && (
-        <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-2 text-center">
-          <b>{timelines[hoveredTimelineId || timelineId].name}:</b>{" "}
-          {timelines[hoveredTimelineId || timelineId].description}
-        </div>
-      )}
-      {isShowingTimelines &&
-        (!hoveredTimelineId || hoveredTimelineId === timelineId) && (
-          <div className="flex flex-row justify-center items-center text-sm mt-2 gap-2">
-            {timelineId === "whatsHot" && (
-              <div className="max-w-xl text-sm text-slate-800 dark:text-slate-400 mt-0 text-center pr-2">
-                {["english", "portuguese", "japanese", "farsi"].map(
-                  (lang, index) => (
-                    <div
-                      className={
-                        "pl-2 ml-2 leading-none inline-block " +
-                        BORDER_300 +
-                        (lang.toLowerCase() === language
-                          ? "font-bold dark:font-normal dark:text-slate-50 underline"
-                          : "") +
-                        (index === 0 ? "" : " border-l")
-                      }
-                      key={index}
-                      onClick={() => setLanguage(lang as LanguageType)}
-                    >
-                      {lang}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-            {!!customTimelineConfigs[timelineId] && (
-              <>
-                <ShareTimelineButton
-                  key={timelineId}
-                  timelineConfig={customTimelineConfigs[timelineId]}
-                  egoHandle={egoHandle}
-                />
+              return (
                 <button
-                  className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-yellow-700 dark:border-yellow-600 dark:text-yellow-100 bg-yellow-300 border-yellow-400 outline-none"
+                  key={id}
+                  className={`outline-none p-2 h-8 flex flex-row items-center border-b ${BORDER_200} ${
+                    isSelected
+                      ? "bg-blue-500 dark:bg-slate-600 text-slate-50 "
+                      : "hover:bg-black/10 dark:hover:bg-white/10"
+                  }`}
                   onClick={() => {
-                    setEditingCustomAITimelineId(timelineId);
-                  }}
-                >
-                  <span className="material-icons mr-1">edit</span>
-                  Edit
-                </button>
-                <button
-                  className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400 outline-none"
-                  onClick={() => {
-                    // are you sure alert?
-                    if (
-                      confirm(
-                        `Are you sure you want to delete "${customTimelineConfigs[timelineId].identity.name}"?`
-                      )
-                    ) {
-                      const newCustomTimelineConfigs = {
-                        ...customTimelineConfigs,
-                      };
-                      delete newCustomTimelineConfigs[timelineId];
-                      setCustomTimelineConfigs(newCustomTimelineConfigs);
-                      setTimelineId("following");
+                    if (!isShowingTimelines) {
+                      router.push({
+                        pathname: "/",
+                      });
                     }
+                    setTimelineId(id as TimelineIdType);
+                    setHoveredTimelineId(null);
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredTimelineId(id as TimelineIdType);
+                  }}
+                  onMouseMove={() => {
+                    setHoveredTimelineId(id as TimelineIdType);
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredTimelineId(null);
                   }}
                 >
-                  <span className="material-icons mr-1">delete</span>
-                  Delete
+                  <span className="material-icons mr-2">
+                    {timelines[id].icon}
+                  </span>
+                  <span className="text-sm xs:text-base">
+                    {timelines[id].name}
+                  </span>
                 </button>
-              </>
-            )}
+              );
+            })}
+            <button
+              className={
+                "outline-none p-2 h-8 flex flex-row items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 " +
+                BORDER_200
+              }
+              onClick={() => {
+                setCreateTimelineModalOpen(true);
+              }}
+            >
+              <span className="material-icons mr-2">add</span>
+              <span className="text-sm xs:text-base">Create timeline</span>
+            </button>
           </div>
         )}
+      </div>
     </div>
   );
 }
@@ -229,13 +225,13 @@ function ShareTimelineButton(props: {
       )}
       <button
         className={
-          "h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 outline-none " +
+          "h-6 w-6 border rounded flex flex-row items-center justify-center dark:bg-green-700 dark:border-green-600 dark:text-green-100 bg-green-300 border-green-400 outline-none " +
           (loading ? "opacity-60 cursor-default" : "")
         }
         onClick={async () => {
           if (loading) return;
           setLoading(true);
-          const response = await fetch("/api/shared_custom_timeline", {
+          await fetch("/api/shared_custom_timeline", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -264,8 +260,7 @@ function ShareTimelineButton(props: {
             });
         }}
       >
-        <span className="material-icons mr-1">share</span>
-        Share timeline prompt
+        <span className="material-icons">share</span>
       </button>
     </>
   );

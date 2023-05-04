@@ -96,12 +96,14 @@ export default function ConfigureTimelineModal(props: {
   setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
   close: () => void;
   editingCustomAITimelineId: string | null;
+  setTimelineId: (id: string) => void;
 }) {
   const {
     customTimelineConfigs,
     setCustomTimelineConfigs,
     close,
     editingCustomAITimelineId,
+    setTimelineId,
   } = props;
   const [config, setConfig] = useState<TimelineConfigType>(
     editingCustomAITimelineId
@@ -242,49 +244,77 @@ export default function ConfigureTimelineModal(props: {
             ["Combo", "combo"],
           ]}
         />
-        <button
-          className="bg-blue-500 text-white rounded-md p-2 w-1/3 mt-4 ml-auto outline-none"
-          onClick={() => {
-            const filteredPositivePrompts = positivePrompts.filter(
-              (item) => !!item.trim()
-            );
-            const filteredNegativePrompts = negativePrompts.filter(
-              (item) => !!item.trim()
-            );
+        <div className="flex flex-row justify-between mt-4">
+          {!!editingCustomAITimelineId && (
+            <button
+              className="bg-red-500 text-white rounded-md p-2 w-1/3 outline-none flex flex-row items-center justify-center"
+              // className="h-6 px-1 border rounded flex flex-row items-center justify-center dark:bg-red-700 dark:border-red-600 dark:text-red-100 bg-red-300 border-red-400 outline-none"
+              onClick={() => {
+                // are you sure alert?
+                if (
+                  confirm(
+                    `Are you sure you want to delete "${customTimelineConfigs[editingCustomAITimelineId].identity.name}"?`
+                  )
+                ) {
+                  const newCustomTimelineConfigs = {
+                    ...customTimelineConfigs,
+                  };
+                  delete newCustomTimelineConfigs[editingCustomAITimelineId];
+                  setCustomTimelineConfigs(newCustomTimelineConfigs);
+                  setTimelineId("following");
+                  close();
+                }
+              }}
+            >
+              <span className="material-icons mr-1 text-xl">delete</span>
+              Delete
+            </button>
+          )}
+          <div />
+          <button
+            className="bg-blue-500 text-white rounded-md p-2 w-1/3 outline-none"
+            onClick={() => {
+              const filteredPositivePrompts = positivePrompts.filter(
+                (item) => !!item.trim()
+              );
+              const filteredNegativePrompts = negativePrompts.filter(
+                (item) => !!item.trim()
+              );
 
-            const behaviour = {
-              ...config.behaviour,
-              positivePrompts: filteredPositivePrompts.length
-                ? filteredPositivePrompts
-                : undefined,
-              negativePrompts: filteredNegativePrompts.length
-                ? filteredNegativePrompts
-                : undefined,
-            };
+              const behaviour = {
+                ...config.behaviour,
+                positivePrompts: filteredPositivePrompts.length
+                  ? filteredPositivePrompts
+                  : undefined,
+                negativePrompts: filteredNegativePrompts.length
+                  ? filteredNegativePrompts
+                  : undefined,
+              };
 
-            setCustomTimelineConfigs({
-              ...customTimelineConfigs,
-              [editingCustomAITimelineId || Date.now().toString()]: {
-                meta: {
-                  ...config.meta,
-                  modifiedOn: Date.now(),
+              setCustomTimelineConfigs({
+                ...customTimelineConfigs,
+                [editingCustomAITimelineId || Date.now().toString()]: {
+                  meta: {
+                    ...config.meta,
+                    modifiedOn: Date.now(),
+                  },
+                  identity: {
+                    ...config.identity,
+                    name: config.identity.name.trim(),
+                    description: behaviourToDescription({
+                      ...DEFAULT_BEHAVIOUR,
+                      ...behaviour,
+                    }),
+                  },
+                  behaviour,
                 },
-                identity: {
-                  ...config.identity,
-                  name: config.identity.name.trim(),
-                  description: behaviourToDescription({
-                    ...DEFAULT_BEHAVIOUR,
-                    ...behaviour,
-                  }),
-                },
-                behaviour,
-              },
-            });
-            close();
-          }}
-        >
-          {editingCustomAITimelineId ? "Save" : "Create"}
-        </button>
+              });
+              close();
+            }}
+          >
+            {editingCustomAITimelineId ? "Save" : "Create"}
+          </button>
+        </div>
       </div>
     </Modal>
   );

@@ -1,12 +1,17 @@
 import "@/styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import type { AppProps } from "next/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import ConfigureTimelineModal from "@/components/ConfigureTimelineModal";
+import {
+  ComposingPostType,
+  ControllerContext,
+} from "@/components/ControllerContext";
 import Header from "@/components/Header";
 import LoginScreen from "@/components/LoginScreen";
-import TimelinePicker from "@/components/TimelinePicker";
+import NavBar from "@/components/NavBar";
+import PostComposer from "@/components/PostComposer";
 import { useAuthorization } from "@/helpers/auth";
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { useLocalStorageState } from "@/helpers/hooks";
@@ -14,21 +19,14 @@ import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
 import { useFirefoxPolyfill } from "@/helpers/polyfill";
 import {
   CustomAITimelineType,
-  CustomAITimelinesType,
   convertOldCustomToNewConfig,
   useMigrateOldCustomTimelines,
 } from "@/helpers/timelineMigration";
 import { TimelineIdType, useTimelines } from "@/helpers/timelines";
-import { BskyAgent } from "@atproto/api";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
 import ProfileScreen from "./profile/[handle]";
-import PostComposer from "@/components/PostComposer";
-import {
-  ComposingPostType,
-  ControllerContext,
-} from "@/components/ControllerContext";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -80,7 +78,7 @@ function useCustomTimelineInstaller(
     }
   }, [router.query.tl]);
 }
-function useBodyClassName(className: string) {
+export function useBodyClassName(className: string) {
   useEffect(() => {
     className.split(" ").forEach((name) => document.body.classList.add(name));
 
@@ -148,17 +146,29 @@ export default function App({
         <link rel="icon" href="/skyline-16.png" />
       </Head>
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
-        <Header
-          logout={
-            egoHandle
-              ? () => {
-                  setLoginResponseData(null);
-                }
-              : null
-          }
-        />
         {egoHandle ? (
           <ControllerContext.Provider value={{ setComposingPost }}>
+            <NavBar
+              egoHandle={egoHandle}
+              timelineId={timelineId}
+              setTimelineId={setTimelineId}
+              customTimelineConfigs={customTimelineConfigs}
+              setCustomTimelineConfigs={setCustomTimelineConfigs}
+              timelines={timelineDefinitions}
+              language={language}
+              setLanguage={setLanguage}
+              setCreateTimelineModalOpen={setCreateTimelineModalOpen}
+              setEditingCustomAITimelineId={setEditingCustomAITimelineId}
+            />
+            {/* <Header
+              logout={
+                egoHandle
+                  ? () => {
+                      setLoginResponseData(null);
+                    }
+                  : null
+              }
+            />
             <TimelinePicker
               timelineId={timelineId}
               setTimelineId={setTimelineId}
@@ -170,7 +180,7 @@ export default function App({
               setLanguage={setLanguage}
               setCreateTimelineModalOpen={setCreateTimelineModalOpen}
               setEditingCustomAITimelineId={setEditingCustomAITimelineId}
-            />
+            /> */}
             <Component
               // React stuff
               {...pageProps}
@@ -194,6 +204,7 @@ export default function App({
                   setEditingCustomAITimelineId(null);
                 }}
                 editingCustomAITimelineId={editingCustomAITimelineId}
+                setTimelineId={setTimelineId}
               />
             )}
             <PostComposer
@@ -204,7 +215,18 @@ export default function App({
             />
           </ControllerContext.Provider>
         ) : (
-          <LoginScreen agent={agent} />
+          <>
+            <Header
+              logout={
+                egoHandle
+                  ? () => {
+                      setLoginResponseData(null);
+                    }
+                  : null
+              }
+            />
+            <LoginScreen agent={agent} />
+          </>
         )}
       </div>
       <Analytics />
