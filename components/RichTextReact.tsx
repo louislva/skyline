@@ -9,12 +9,13 @@ export default function RichTextReact(props: {
 }) {
   const { agent, text } = props;
   const [segments, setSegments] = useState<
-    {
-      type: "text" | "link" | "mention";
-      text: string;
-      value?: string;
-    }[]
-  >([]);
+    | {
+        type: "text" | "link" | "mention";
+        text: string;
+        value?: string;
+      }[]
+    | null
+  >(null);
 
   useEffect(() => {
     (async () => {
@@ -53,40 +54,49 @@ export default function RichTextReact(props: {
 
   return (
     <>
-      {segments.map((segment) => {
-        return (
-          <>
-            {segment.text.split("\n").map((line, index) => {
-              return (
-                <Fragment key={index}>
-                  {index !== 0 && <br />}
-                  {segment.type === "link" ? (
-                    <Link
-                      href={segment.value || ""}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={LINK}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {line}
-                    </Link>
-                  ) : segment.type === "mention" ? (
-                    <Link
-                      href={`/profile/${segment.value}`}
-                      className={LINK}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {line}
-                    </Link>
-                  ) : (
-                    line
-                  )}
-                </Fragment>
-              );
-            })}
-          </>
-        );
-      })}
+      {segments
+        ? segments.map((segment) => {
+            return (
+              <>
+                {segment.text.split("\n").map((line, index) => {
+                  return (
+                    <Fragment key={index}>
+                      {index !== 0 && <br />}
+                      {segment.type === "link" ? (
+                        <Link
+                          href={segment.value || ""}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={LINK}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {line}
+                        </Link>
+                      ) : segment.type === "mention" ? (
+                        <Link
+                          href={`/profile/${segment.value}`}
+                          className={LINK}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {line}
+                        </Link>
+                      ) : (
+                        line
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </>
+            );
+          })
+        : text.split("\n").map((line, index) => {
+            return (
+              <Fragment key={index}>
+                {index !== 0 && <br />}
+                {line}
+              </Fragment>
+            );
+          })}
     </>
   );
 }

@@ -4,7 +4,7 @@ import { BskyAgent } from "@atproto/api";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import moment from "moment";
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import RichTextReact from "./RichTextReact";
 import { useRouter } from "next/router";
 import { useControllerContext } from "./ControllerContext";
@@ -31,7 +31,91 @@ type EmbedType = {
   };
 };
 
-export default function Post(props: {
+function PostVirtualizer(props: { children: React.ReactNode }) {
+  const AVERAGE_HEIGHT = 500;
+  const SLACK = AVERAGE_HEIGHT * 2;
+
+  const { children } = props;
+  const [visible, setVisible] = useState<boolean>(false);
+  const visibleRef = useRef<boolean>(false);
+  visibleRef.current = visible;
+
+  const calculateVisible = () => {
+    let top = null;
+    let bottom = null;
+    if (visibleRef.current) {
+      if (childRef.current) {
+        top = childRef.current.getBoundingClientRect().top;
+        bottom = childRef.current.getBoundingClientRect().bottom;
+      }
+    } else {
+      if (placeholderRef.current) {
+        top = placeholderRef.current.getBoundingClientRect().top;
+        bottom = placeholderRef.current.getBoundingClientRect().bottom;
+      }
+    }
+
+    const windowHeight = window.innerHeight;
+    if (top !== null && bottom !== null) {
+      if (top > windowHeight + SLACK || bottom < 0 - SLACK) {
+        setVisible(false);
+      } else {
+        setVisible(true);
+      }
+    }
+  };
+
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(
+    AVERAGE_HEIGHT
+  );
+
+  const childRef = useRef<HTMLDivElement>(null);
+  const placeholderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    calculateVisible();
+    if (typeof window !== undefined) {
+      window.addEventListener("resize", calculateVisible);
+      window.addEventListener("scroll", calculateVisible);
+
+      return () => {
+        window.removeEventListener("resize", calculateVisible);
+        window.removeEventListener("scroll", calculateVisible);
+      };
+    }
+  }, []);
+  useEffect(() => {
+    if (visible) {
+      const measure = () => {
+        if (childRef.current) {
+          setMeasuredHeight(childRef.current.getBoundingClientRect().height);
+        }
+      };
+
+      measure();
+      const timeout250 = setTimeout(measure, 250);
+      const timeout1000 = setTimeout(measure, 1000);
+
+      return () => {
+        clearTimeout(timeout250);
+        clearTimeout(timeout1000);
+      };
+    }
+  }, [visible]);
+
+  return visible ? (
+    <div ref={childRef}>{children}</div>
+  ) : (
+    <div
+      ref={placeholderRef}
+      style={{
+        height: measuredHeight || AVERAGE_HEIGHT,
+      }}
+    ></div>
+  );
+}
+
+export function Post(props: {
   agent: BskyAgent;
   post: SkylinePostType;
   hasChildren?: boolean;
@@ -202,6 +286,14 @@ export default function Post(props: {
     </>
   );
 }
+
+export default (props: any) => {
+  return (
+    <PostVirtualizer>
+      <Post {...props} />
+    </PostVirtualizer>
+  );
+};
 
 function ContentStandalone(props: {
   agent: BskyAgent;
