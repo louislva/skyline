@@ -32,7 +32,8 @@ import ProfileScreen from "./profile/[handle]";
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
   customTimelineConfigs: TimelineConfigsType,
-  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void
+  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void,
+  setTimelineId: (timelineId: TimelineIdType) => void
 ) {
   const router = useRouter();
   useEffect(() => {
@@ -59,9 +60,10 @@ function useCustomTimelineInstaller(
                 const config = json.config_new
                   ? json.config_new
                   : convertOldCustomToNewConfig(json.config);
+                const newId = Date.now().toString();
                 setCustomTimelineConfigs({
                   ...customTimelineConfigs,
-                  [Date.now().toString()]: {
+                  [newId]: {
                     ...config,
                     identity: {
                       ...config.identity,
@@ -69,6 +71,7 @@ function useCustomTimelineInstaller(
                     },
                   },
                 });
+                setTimelineId(newId);
               }
             );
           } else {
@@ -126,9 +129,6 @@ export default function App({
   // Makes sure to migrate timelines from @customAITimelines into @customTimelineConfigs (if any)
   useMigrateOldCustomTimelines(customTimelineConfigs, setCustomTimelineConfigs);
 
-  // If ?tl=<key> in URL, install a new custom timeline.
-  useCustomTimelineInstaller(customTimelineConfigs, setCustomTimelineConfigs);
-
   const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
     "@timelineId",
     "following"
@@ -136,6 +136,13 @@ export default function App({
   const timelineId = timelineDefinitions[timelineId_]
     ? timelineId_
     : "following";
+
+  // If ?tl=<key> in URL, install a new custom timeline.
+  useCustomTimelineInstaller(
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
+    setTimelineId
+  );
 
   const [createTimelineModal, setCreateTimelineModalOpen] = useState(false);
   const [editingCustomAITimelineId, setEditingCustomAITimelineId] = useState<
