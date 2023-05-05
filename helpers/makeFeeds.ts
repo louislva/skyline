@@ -52,6 +52,26 @@ export type TimelineConfigType = {
 export type TimelineConfigsType = {
   [id: string]: TimelineConfigType;
 };
+export const getDefaultTimelineConfig: () => TimelineConfigType = () => ({
+  meta: {
+    origin: "self",
+    createdOn: Date.now(),
+    modifiedOn: Date.now(),
+  },
+  identity: {
+    name: "",
+    description: "",
+    icon: "bolt",
+  },
+  behaviour: {
+    baseFeed: "following",
+    mutualsOnly: false,
+    negativePrompts: [],
+    positivePrompts: [],
+    replies: "all",
+    sorting: "combo",
+  },
+});
 
 // OUTPUT:
 export type ProduceFeedOutput = {

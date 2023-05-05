@@ -181,6 +181,7 @@ export default function App({
               agent={agent}
               // Skyline stuff
               customTimelineConfigs={customTimelineConfigs}
+              setCustomTimelineConfigs={setCustomTimelineConfigs}
               language={language}
               timelineId={timelineId}
               timelines={timelineDefinitions}
