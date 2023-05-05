@@ -12,7 +12,9 @@ let followsCache: ProfileView[] | null = null;
 let followersCache: ProfileView[] | null = null;
 let threadCache = new Cache<GetPostThreadResponse>(
   "threadCache",
-  1000 * 60 * 10 // 10 minutes
+  // TODO: do something about this shit. takes up way too much storage too fast
+  1000 * 12 * 10, // 2 minutes
+  false
 );
 
 export async function getFollows(
