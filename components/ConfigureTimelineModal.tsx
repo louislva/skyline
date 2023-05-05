@@ -6,7 +6,7 @@ import {
 } from "@/helpers/makeFeeds";
 import { behaviourToDescription } from "@/helpers/timelines";
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 function HorizontalSelector<T>(props: {
   value: T;
@@ -26,7 +26,7 @@ function HorizontalSelector<T>(props: {
         return (
           <button
             className={
-              "outline-none p-2 grow shrink text-center " +
+              "outline-none p-2 grow shrink text-center flex flex-row justify-center items-center " +
               BORDER_300 +
               (index !== 0 ? "border-l " : "") +
               (selected
@@ -35,7 +35,16 @@ function HorizontalSelector<T>(props: {
             }
             onClick={() => setValue(id)}
           >
-            {label}
+            {label === "List" ? (
+              <>
+                <div className="ml-1 mr-1">{label}</div>
+                <div className="text-xs px-1 text-white/90 rounded bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+                  BETA
+                </div>
+              </>
+            ) : (
+              <span>{label}</span>
+            )}
           </button>
         );
       })}
@@ -44,18 +53,24 @@ function HorizontalSelector<T>(props: {
 }
 
 function PromptsList(props: {
-  placeholder: string;
+  placeholder: string | string[];
   prompts: string[];
   setPrompts: (prompts: string[]) => void;
 }) {
   const { placeholder, prompts, setPrompts } = props;
+  const inputsRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   return (
     <>
       {prompts.map((prompt, index) => (
         <div className="flex flex-row items-center">
           <input
             type="text"
-            placeholder={placeholder}
+            placeholder={
+              typeof placeholder === "string"
+                ? placeholder
+                : placeholder[index % placeholder.length]
+            }
             className={"h-10 flex-1 rounded-md p-2 " + INPUT_CLASSNAME}
             value={prompt}
             onChange={(e) => {
@@ -65,6 +80,27 @@ function PromptsList(props: {
                   .concat([e.target.value])
                   .concat(prompts.slice(index + 1))
               );
+            }}
+            ref={(input) => {
+              inputsRefs.current[index] = input;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setPrompts([...prompts, ""]);
+                setTimeout(() => {
+                  inputsRefs.current[index + 1]?.focus();
+                }, 50);
+              }
+              if (e.key === "Backspace" && prompt === "") {
+                if (index !== 0) {
+                  setPrompts(
+                    prompts.slice(0, index).concat(prompts.slice(index + 1))
+                  );
+                  setTimeout(() => {
+                    inputsRefs.current[index - 1]?.focus();
+                  }, 50);
+                }
+              }
             }}
           />
           {index === prompts.length - 1 ? (
@@ -164,22 +200,27 @@ export default function ConfigureTimelineModal(props: {
         />
         <label className="mt-2">Base feed</label>
         <HorizontalSelector<
-          "following" | "mutuals" | "popular" | "popular-nsfw"
+          "following" | "mutuals" | "popular" | "popular-nsfw" | "list"
         >
           value={
             config.behaviour.mutualsOnly
               ? "mutuals"
-              : (config.behaviour.baseFeed as
-                  | "following"
-                  | "popular"
-                  | "popular-nsfw")
+              : config.behaviour.baseFeed === "popular-nsfw"
+              ? "popular"
+              : (config.behaviour.baseFeed as "following" | "popular" | "list")
           }
           setValue={(value) => {
             setConfig({
               ...config,
               behaviour: {
                 ...config.behaviour,
-                baseFeed: value === "mutuals" ? "following" : value,
+                baseFeed:
+                  value === "mutuals"
+                    ? "following"
+                    : value === "popular" &&
+                      config.behaviour.baseFeed === "popular-nsfw"
+                    ? "popular-nsfw"
+                    : value,
                 mutualsOnly: value === "mutuals",
               },
             });
@@ -188,22 +229,71 @@ export default function ConfigureTimelineModal(props: {
             ["Following", "following"],
             ["Mutuals", "mutuals"],
             ["What's Hot", "popular"],
-            ["What's Hot (NSFW)", "popular-nsfw"],
+            ["List", "list"],
           ]}
         />
-        <HorizontalSelector<"all" | "none">
-          value={config.behaviour.replies || "all"}
-          setValue={(value) =>
-            setConfig({
-              ...config,
-              behaviour: { ...config.behaviour, replies: value },
-            })
-          }
-          options={[
-            ["Show replies", "all"],
-            ["Hide replies", "none"],
-          ]}
-        />
+        {config.behaviour.baseFeed === "list" && (
+          <>
+            <label className="flex flex-row items-center mt-0">
+              List members
+            </label>
+            <PromptsList
+              placeholder={[
+                "@thearchduke.bsky.social",
+                "@louis02x.com",
+                "@woof.bsky.social",
+              ]}
+              prompts={
+                config.behaviour.list?.length ? config.behaviour.list : [""]
+              }
+              setPrompts={(value) =>
+                setConfig({
+                  ...config,
+                  behaviour: {
+                    ...config.behaviour,
+                    list: value,
+                  },
+                })
+              }
+            />
+          </>
+        )}
+        {["popular-nsfw", "popular"].includes(
+          config.behaviour.baseFeed || ""
+        ) ? (
+          <HorizontalSelector<"popular" | "popular-nsfw">
+            key="whatshotselector"
+            value={config.behaviour.baseFeed as "popular-nsfw" | "popular"}
+            setValue={(value) => {
+              setConfig({
+                ...config,
+                behaviour: {
+                  ...config.behaviour,
+                  baseFeed: value,
+                },
+              });
+            }}
+            options={[
+              ["Safe-mode", "popular"],
+              ["Unfiltered", "popular-nsfw"],
+            ]}
+          />
+        ) : (
+          <HorizontalSelector<"all" | "none">
+            key="repliesselector"
+            value={config.behaviour.replies || "all"}
+            setValue={(value) =>
+              setConfig({
+                ...config,
+                behaviour: { ...config.behaviour, replies: value },
+              })
+            }
+            options={[
+              ["Show replies", "all"],
+              ["Hide replies", "none"],
+            ]}
+          />
+        )}
         <label className="flex flex-row items-center mt-2">
           I want to see more of...
           <span className="material-icons text-green-600 ml-1">thumb_up</span>
@@ -283,6 +373,9 @@ export default function ConfigureTimelineModal(props: {
 
               const behaviour = {
                 ...config.behaviour,
+                list: config.behaviour.list
+                  ?.filter((item) => !!item.trim())
+                  .map((item) => (item[0] === "@" ? item : "@" + item)),
                 positivePrompts: filteredPositivePrompts.length
                   ? filteredPositivePrompts
                   : undefined,

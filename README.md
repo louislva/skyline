@@ -137,6 +137,7 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [ ] Github Link in Footer
   - [ ] Create a list of top developers who worked on Skyline (with their profile links) and put it in the sidebar
   - [ ] Created-on info on profiles: https://staging.bsky.app/profile/ansh.bsky.team/post/3juq55sdqpk2h
+  - [ ] Minecraft Server (https://staging.bsky.app/profile/cam.fyi/post/3juwweycwa72h)
 
 ## Bugs list
 
