@@ -377,9 +377,10 @@ export default function ConfigureTimelineModal(props: {
                   : undefined,
               };
 
+              const newId = Date.now().toString();
               setCustomTimelineConfigs({
                 ...customTimelineConfigs,
-                [editingCustomAITimelineId || Date.now().toString()]: {
+                [editingCustomAITimelineId || newId]: {
                   meta: {
                     ...config.meta,
                     modifiedOn: Date.now(),
@@ -395,6 +396,8 @@ export default function ConfigureTimelineModal(props: {
                   behaviour,
                 },
               });
+              // If it was just created, switch to it.
+              if (!editingCustomAITimelineId) setTimelineId(newId);
               close();
             }}
           >
