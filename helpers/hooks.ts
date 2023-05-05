@@ -15,8 +15,8 @@ export function useLocalStorageState<T>(
     const value = localStorage.getItem(key);
     if (value) {
       setState(JSON.parse(value));
-      setHasLoaded(true);
     }
+    setHasLoaded(true);
   }, []);
 
   const setStateAndSave = (value: T) => {
