@@ -132,6 +132,7 @@ export default class ListFetcher {
 
   getHandlesNeedingMorePosts = (oldestTs: Date) => {
     const out: string[] = [];
+    if (Object.keys(this.state).length <= 1) return Object.keys(this.state);
     Object.entries(this.state).forEach(([handle, vals]) => {
       if (
         this.getDateFromPost(vals.feed.at(-1)!).getTime() > oldestTs.getTime()
