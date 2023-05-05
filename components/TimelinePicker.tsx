@@ -64,13 +64,7 @@ export default function TimelinePicker(props: {
           id="timelinePickerButton"
           className={`flex-1 rounded-md border overflow-hidden outline-none p-2 h-8 flex flex-row items-center ${BORDER_300}`}
           onClick={() => {
-            if (!isShowingTimelines) {
-              router.push({
-                pathname: "/",
-              });
-            } else {
-              setDropdown(!dropdown);
-            }
+            setDropdown(!dropdown);
           }}
         >
           <span className="material-icons mr-2">
