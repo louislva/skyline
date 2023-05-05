@@ -9,6 +9,7 @@ import {
   ControllerContext,
 } from "@/components/ControllerContext";
 import Header from "@/components/Header";
+import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import LoginScreen from "@/components/LoginScreen";
 import NavBar from "@/components/NavBar";
 import PostComposer from "@/components/PostComposer";
@@ -100,7 +101,13 @@ export default function App({
   useFirefoxPolyfill();
 
   // Auth stuff
-  const { agent, egoHandle, egoDid, setLoginResponseData } = useAuthorization();
+  const {
+    agent,
+    egoHandle,
+    egoDid,
+    setLoginResponseData,
+    loginResponseDataHasLoaded,
+  } = useAuthorization();
 
   // Styling for body
   useBodyClassName("bg-slate-50 dark:bg-slate-900");
@@ -146,7 +153,11 @@ export default function App({
         <link rel="icon" href="/skyline-16.png" />
       </Head>
       <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
-        {egoHandle ? (
+        {!loginResponseDataHasLoaded ? (
+          <div className="min-h-screen w-full flex flex-col items-center justify-center pb-32">
+            <LoadingPlaceholder />
+          </div>
+        ) : egoHandle ? (
           <ControllerContext.Provider value={{ setComposingPost }}>
             <NavBar
               egoHandle={egoHandle}
@@ -191,6 +202,7 @@ export default function App({
               agent={agent}
               // Skyline stuff
               customTimelineConfigs={customTimelineConfigs}
+              setCustomTimelineConfigs={setCustomTimelineConfigs}
               language={language}
               timelineId={timelineId}
               timelines={timelineDefinitions}

@@ -22,6 +22,7 @@ export async function getFollows(
   identifier: string,
   maxPages: number = 10
 ): Promise<ProfileView[]> {
+  // TODO: add identifier to cache
   if (followsCache) return followsCache;
 
   let follows: ProfileView[] = [];
@@ -44,6 +45,33 @@ export async function getFollows(
     }
   }
   followsCache = follows;
+  return follows;
+}
+export async function getFollowsNoCache(
+  agent: BskyAgent,
+  identifier: string,
+  maxPages: number = 10
+) {
+  let follows: ProfileView[] = [];
+  let cursor;
+  for (let i = 0; i < maxPages; i++) {
+    const response = await agent.getFollows({
+      actor: identifier,
+      cursor,
+    });
+
+    if (response.success) {
+      follows = follows.concat(response.data.follows);
+      if (!response.data.cursor || response.data.follows.length === 0) {
+        break;
+      }
+      cursor = response.data.cursor;
+    } else {
+      // TODO: Handle error
+      break;
+    }
+  }
+
   return follows;
 }
 async function getFollowers(

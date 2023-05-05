@@ -3,6 +3,7 @@ import {
   DEFAULT_BEHAVIOUR,
   TimelineConfigType,
   TimelineConfigsType,
+  getDefaultTimelineConfig,
 } from "@/helpers/makeFeeds";
 import { behaviourToDescription } from "@/helpers/timelines";
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
@@ -101,10 +102,20 @@ function PromptsList(props: {
                   }, 50);
                 }
               }
+              if (
+                e.key === "Delete" &&
+                prompt === "" &&
+                index < prompts.length - 1
+              ) {
+                setPrompts(
+                  prompts.slice(0, index).concat(prompts.slice(index + 1))
+                );
+              }
             }}
           />
           {index === prompts.length - 1 ? (
             <button
+              tabIndex={-1}
               className="h-8 w-8 ml-2 rounded-md bg-green-500 material-icons text-xl text-black unselectable"
               onClick={() => setPrompts([...prompts, ""])}
             >
@@ -112,6 +123,7 @@ function PromptsList(props: {
             </button>
           ) : (
             <button
+              tabIndex={-1}
               className="h-8 w-8 ml-2 rounded-md bg-red-500 material-icons text-xl text-black unselectable"
               onClick={() => {
                 setPrompts(
@@ -144,26 +156,7 @@ export default function ConfigureTimelineModal(props: {
   const [config, setConfig] = useState<TimelineConfigType>(
     editingCustomAITimelineId
       ? customTimelineConfigs[editingCustomAITimelineId]
-      : {
-          meta: {
-            origin: "self",
-            createdOn: Date.now(),
-            modifiedOn: Date.now(),
-          },
-          identity: {
-            name: "",
-            description: "",
-            icon: "bolt",
-          },
-          behaviour: {
-            baseFeed: "following",
-            mutualsOnly: false,
-            negativePrompts: [],
-            positivePrompts: [],
-            replies: "all",
-            sorting: "combo",
-          },
-        }
+      : getDefaultTimelineConfig()
   );
 
   const [positivePrompts, setPositivePrompts] = useState<string[]>(
