@@ -6,7 +6,7 @@ import {
 } from "@/helpers/makeFeeds";
 import { behaviourToDescription } from "@/helpers/timelines";
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 function HorizontalSelector<T>(props: {
   value: T;
@@ -44,18 +44,24 @@ function HorizontalSelector<T>(props: {
 }
 
 function PromptsList(props: {
-  placeholder: string;
+  placeholder: string | string[];
   prompts: string[];
   setPrompts: (prompts: string[]) => void;
 }) {
   const { placeholder, prompts, setPrompts } = props;
+  const inputsRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   return (
     <>
       {prompts.map((prompt, index) => (
         <div className="flex flex-row items-center">
           <input
             type="text"
-            placeholder={placeholder}
+            placeholder={
+              typeof placeholder === "string"
+                ? placeholder
+                : placeholder[index % placeholder.length]
+            }
             className={"h-10 flex-1 rounded-md p-2 " + INPUT_CLASSNAME}
             value={prompt}
             onChange={(e) => {
@@ -65,6 +71,27 @@ function PromptsList(props: {
                   .concat([e.target.value])
                   .concat(prompts.slice(index + 1))
               );
+            }}
+            ref={(input) => {
+              inputsRefs.current[index] = input;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setPrompts([...prompts, ""]);
+                setTimeout(() => {
+                  inputsRefs.current[index + 1]?.focus();
+                }, 50);
+              }
+              if (e.key === "Backspace" && prompt === "") {
+                if (index !== 0) {
+                  setPrompts(
+                    prompts.slice(0, index).concat(prompts.slice(index + 1))
+                  );
+                  setTimeout(() => {
+                    inputsRefs.current[index - 1]?.focus();
+                  }, 50);
+                }
+              }
             }}
           />
           {index === prompts.length - 1 ? (
@@ -162,7 +189,7 @@ export default function ConfigureTimelineModal(props: {
         />
         <label className="mt-2">Base feed</label>
         <HorizontalSelector<
-          "following" | "mutuals" | "popular" | "popular-nsfw"
+          "following" | "mutuals" | "popular" | "popular-nsfw" | "list"
         >
           value={
             config.behaviour.mutualsOnly
@@ -170,7 +197,8 @@ export default function ConfigureTimelineModal(props: {
               : (config.behaviour.baseFeed as
                   | "following"
                   | "popular"
-                  | "popular-nsfw")
+                  | "popular-nsfw"
+                  | "list")
           }
           setValue={(value) => {
             setConfig({
@@ -186,9 +214,35 @@ export default function ConfigureTimelineModal(props: {
             ["Following", "following"],
             ["Mutuals", "mutuals"],
             ["What's Hot", "popular"],
-            ["What's Hot (NSFW)", "popular-nsfw"],
+            ["List", "list"],
           ]}
         />
+        {config.behaviour.baseFeed === "list" && (
+          <>
+            <label className="flex flex-row items-center mt-2">
+              List members
+            </label>
+            <PromptsList
+              placeholder={[
+                "@thearchduke.bsky.social",
+                "@louis02x.com",
+                "@woof.bsky.social",
+              ]}
+              prompts={
+                config.behaviour.list?.length ? config.behaviour.list : [""]
+              }
+              setPrompts={(value) =>
+                setConfig({
+                  ...config,
+                  behaviour: {
+                    ...config.behaviour,
+                    list: value,
+                  },
+                })
+              }
+            />
+          </>
+        )}
         <HorizontalSelector<"all" | "none">
           value={config.behaviour.replies || "all"}
           setValue={(value) =>
@@ -254,6 +308,9 @@ export default function ConfigureTimelineModal(props: {
 
             const behaviour = {
               ...config.behaviour,
+              list: config.behaviour.list
+                ?.filter((item) => !!item.trim())
+                .map((item) => (item[0] === "@" ? item : "@" + item)),
               positivePrompts: filteredPositivePrompts.length
                 ? filteredPositivePrompts
                 : undefined,
