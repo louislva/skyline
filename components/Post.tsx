@@ -537,16 +537,14 @@ function ContentInline(props: {
   const router = useRouter();
 
   return (
-    <div
+    <Link
       className={
-        "p-4 overflow-hidden flex flex-row " +
+        "p-4 overflow-hidden flex flex-row cursor-default " +
         (!isLastPostInThread || isLastPostInFeed
           ? "border-none "
           : "border-b " + BORDER_300)
       }
-      onClick={async (e) => {
-        router.push(postLink);
-      }}
+      href={postLink}
     >
       {/* Profile Column */}
       <div className="flex flex-col w-12 items-center">
@@ -682,7 +680,7 @@ function ContentInline(props: {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
