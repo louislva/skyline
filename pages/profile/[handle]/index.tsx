@@ -191,8 +191,8 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   {isFollowing ? "Following" : "Follow"}
                 </button>
               )}
-              <div className="relative ml-2 mt-3 ">
-                {optionsEnabled && (
+              {optionsEnabled && (
+                <div className="relative ml-2 mt-3 ">
                   <button
                     className={
                       "flex flex-row items-center justify-center w-8 h-8 rounded-md text-base bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white material-icons "
@@ -204,98 +204,100 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   >
                     more_horiz
                   </button>
-                )}
-                {optionsDropdown && (
-                  <div
-                    className={
-                      "absolute w-80 mt-2 z-30 border-2 right-0 flex flex-col items-start rounded-md text-base bg-slate-200 dark:bg-slate-700 overflow-hidden " +
-                      BORDER_300
-                    }
-                  >
-                    {createListFromFollowsEnabled && (
-                      <button
-                        className={
-                          "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600"
-                        }
-                        onClick={async () => {
-                          const following = await getFollowsNoCache(
-                            agent,
-                            profile.did
-                          );
-                          const handles = following.map(
-                            (follow) => follow.handle
-                          );
-                          setCustomTimelineConfigs({
-                            ...customTimelineConfigs,
-                            [Date.now()]: {
-                              ...getDefaultTimelineConfig(),
-                              behaviour: {
-                                ...getDefaultTimelineConfig().behaviour,
-                                baseFeed: "list",
-                                list: [profile.handle].concat(handles),
-                              },
-                              identity: {
-                                ...getDefaultTimelineConfig().identity,
-                                name: `${profile.displayName}'s following`,
-                                description: `Posts from people that ${
-                                  profile.displayName
-                                } (@${
-                                  profile.handle
-                                }) follows (as of ${moment().format(
-                                  "YYYY-MM-DD"
-                                )}).`,
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        Create list from Following
-                      </button>
-                    )}
-                    {lists.map(([id, config], index) => {
-                      const hasMember =
-                        config.behaviour.list?.includes(profile.handle) ||
-                        config.behaviour.list?.includes("@" + profile.handle) ||
-                        config.behaviour.list?.includes(profile.did);
-                      return (
+                  {optionsDropdown && (
+                    <div
+                      className={
+                        "absolute w-80 mt-2 z-30 border-2 right-0 flex flex-col items-start rounded-md text-base bg-slate-200 dark:bg-slate-700 overflow-hidden " +
+                        BORDER_300
+                      }
+                    >
+                      {createListFromFollowsEnabled && (
                         <button
                           className={
-                            "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600 " +
-                            BORDER_300 +
-                            (createListFromFollowsEnabled || index !== 0
-                              ? "border-t "
-                              : "")
+                            "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600"
                           }
-                          onClick={() => {
+                          onClick={async () => {
+                            const following = await getFollowsNoCache(
+                              agent,
+                              profile.did
+                            );
+                            const handles = following
+                              .map((follow) => follow.handle)
+                              .reverse(); // oldest to newest follow, ish
                             setCustomTimelineConfigs({
                               ...customTimelineConfigs,
-                              [id]: {
-                                ...config,
+                              [Date.now()]: {
+                                ...getDefaultTimelineConfig(),
                                 behaviour: {
-                                  ...config.behaviour,
-                                  list: hasMember
-                                    ? (config.behaviour.list || []).filter(
-                                        (l) =>
-                                          l !== profile.did &&
-                                          l !== profile.handle &&
-                                          l !== "@" + profile.handle
-                                      )
-                                    : (config.behaviour.list || []).concat(
-                                        profile.handle
-                                      ),
+                                  ...getDefaultTimelineConfig().behaviour,
+                                  baseFeed: "list",
+                                  list: [profile.handle].concat(handles),
+                                },
+                                identity: {
+                                  ...getDefaultTimelineConfig().identity,
+                                  name: `${profile.displayName}'s following`,
+                                  description: `Posts from people that ${
+                                    profile.displayName
+                                  } (@${
+                                    profile.handle
+                                  }) follows (as of ${moment().format(
+                                    "YYYY-MM-DD"
+                                  )}).`,
                                 },
                               },
                             });
                           }}
                         >
-                          {hasMember ? "Remove from" : "Add to"} "
-                          {config.identity.name}"
+                          Create list from Following
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                      )}
+                      {lists.map(([id, config], index) => {
+                        const hasMember =
+                          config.behaviour.list?.includes(profile.handle) ||
+                          config.behaviour.list?.includes(
+                            "@" + profile.handle
+                          ) ||
+                          config.behaviour.list?.includes(profile.did);
+                        return (
+                          <button
+                            className={
+                              "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600 " +
+                              BORDER_300 +
+                              (createListFromFollowsEnabled || index !== 0
+                                ? "border-t "
+                                : "")
+                            }
+                            onClick={() => {
+                              setCustomTimelineConfigs({
+                                ...customTimelineConfigs,
+                                [id]: {
+                                  ...config,
+                                  behaviour: {
+                                    ...config.behaviour,
+                                    list: hasMember
+                                      ? (config.behaviour.list || []).filter(
+                                          (l) =>
+                                            l !== profile.did &&
+                                            l !== profile.handle &&
+                                            l !== "@" + profile.handle
+                                        )
+                                      : (config.behaviour.list || []).concat(
+                                          profile.handle
+                                        ),
+                                  },
+                                },
+                              });
+                            }}
+                          >
+                            {hasMember ? "Remove from" : "Add to"} "
+                            {config.identity.name}"
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex flex-row mb-1">
               <Stat count={profile.followersCount || 0} label="followers" />
