@@ -158,6 +158,8 @@ export function behaviourToDescription(
     ? "Mutuals feed"
     : behaviour.baseFeed === "popular" || behaviour.baseFeed === "popular-nsfw"
     ? "What's Hot feed"
+    : behaviour.baseFeed === "list"
+    ? "List feed (" + (behaviour.list || []).length + " members)"
     : "Following feed";
   const segmentReplies = behaviour.replies === "none" ? " without replies" : "";
 

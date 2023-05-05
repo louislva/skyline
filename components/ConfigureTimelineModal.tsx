@@ -26,7 +26,7 @@ function HorizontalSelector<T>(props: {
         return (
           <button
             className={
-              "outline-none p-2 grow shrink text-center " +
+              "outline-none p-2 grow shrink text-center flex flex-row justify-center items-center " +
               BORDER_300 +
               (index !== 0 ? "border-l " : "") +
               (selected
@@ -35,7 +35,16 @@ function HorizontalSelector<T>(props: {
             }
             onClick={() => setValue(id)}
           >
-            {label}
+            {label === "List" ? (
+              <>
+                <div className="ml-1 mr-1">{label}</div>
+                <div className="text-xs px-1 text-white/90 rounded bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+                  BETA
+                </div>
+              </>
+            ) : (
+              <span>{label}</span>
+            )}
           </button>
         );
       })}
@@ -194,18 +203,22 @@ export default function ConfigureTimelineModal(props: {
           value={
             config.behaviour.mutualsOnly
               ? "mutuals"
-              : (config.behaviour.baseFeed as
-                  | "following"
-                  | "popular"
-                  | "popular-nsfw"
-                  | "list")
+              : config.behaviour.baseFeed === "popular-nsfw"
+              ? "popular"
+              : (config.behaviour.baseFeed as "following" | "popular" | "list")
           }
           setValue={(value) => {
             setConfig({
               ...config,
               behaviour: {
                 ...config.behaviour,
-                baseFeed: value === "mutuals" ? "following" : value,
+                baseFeed:
+                  value === "mutuals"
+                    ? "following"
+                    : value === "popular" &&
+                      config.behaviour.baseFeed === "popular-nsfw"
+                    ? "popular-nsfw"
+                    : value,
                 mutualsOnly: value === "mutuals",
               },
             });
@@ -219,7 +232,7 @@ export default function ConfigureTimelineModal(props: {
         />
         {config.behaviour.baseFeed === "list" && (
           <>
-            <label className="flex flex-row items-center mt-2">
+            <label className="flex flex-row items-center mt-0">
               List members
             </label>
             <PromptsList
@@ -243,19 +256,42 @@ export default function ConfigureTimelineModal(props: {
             />
           </>
         )}
-        <HorizontalSelector<"all" | "none">
-          value={config.behaviour.replies || "all"}
-          setValue={(value) =>
-            setConfig({
-              ...config,
-              behaviour: { ...config.behaviour, replies: value },
-            })
-          }
-          options={[
-            ["Show replies", "all"],
-            ["Hide replies", "none"],
-          ]}
-        />
+        {["popular-nsfw", "popular"].includes(
+          config.behaviour.baseFeed || ""
+        ) ? (
+          <HorizontalSelector<"popular" | "popular-nsfw">
+            key="whatshotselector"
+            value={config.behaviour.baseFeed as "popular-nsfw" | "popular"}
+            setValue={(value) => {
+              setConfig({
+                ...config,
+                behaviour: {
+                  ...config.behaviour,
+                  baseFeed: value,
+                },
+              });
+            }}
+            options={[
+              ["Safe-mode", "popular"],
+              ["Unfiltered", "popular-nsfw"],
+            ]}
+          />
+        ) : (
+          <HorizontalSelector<"all" | "none">
+            key="repliesselector"
+            value={config.behaviour.replies || "all"}
+            setValue={(value) =>
+              setConfig({
+                ...config,
+                behaviour: { ...config.behaviour, replies: value },
+              })
+            }
+            options={[
+              ["Show replies", "all"],
+              ["Hide replies", "none"],
+            ]}
+          />
+        )}
         <label className="flex flex-row items-center mt-2">
           I want to see more of...
           <span className="material-icons text-green-600 ml-1">thumb_up</span>
