@@ -52,17 +52,9 @@ export function useAuthorization() {
   const egoHandle = loginResponseData?.handle;
   const egoDid = loginResponseData?.did;
 
-  const accessJwt = !!loginResponseData?.accessJwt
-    ? (jwt.decode(loginResponseData.accessJwt) as AccessJwtType)
-    : null;
-  const loginExpiration = accessJwt?.exp;
-  const timeUntilLoginExpire = loginExpiration
-    ? loginExpiration * 1000 - Date.now()
-    : null;
-
   useEffect(() => {
     // TODO: should !agent.session be there?
-    if (loginResponseData && !agent.session) {
+    if (loginResponseData) {
       agent.resumeSession(loginResponseData);
     }
   }, [loginResponseData]);
