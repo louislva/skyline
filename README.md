@@ -85,22 +85,22 @@ Here is the to-do list I use to track progress - feel free to contribute!
   - [x] Links in Posts
   - [x] Post replies
   - [x] Quote post tweets
+  - [x] Notifications
   - [ ] List likes, reposts, quote posts (quote posts you can do by using the Bsky search endpoint & looking for the link; https://staging.bsky.app/profile/liz.rip/post/3jup5h3rucq2g)
-  - [ ] Notifications
   - [ ] Click images to see expanded
   - [ ] "Interactions" tab on profiles
   - [ ] Delete tweets
   - [ ] Own profile link + editing
 - [ ] Project "Performance Optimization"
-  - [ ] Don't render out of view - it's lagging intensely on mobile
+  - [x] Don't render out of view - it's lagging intensely on mobile
   - [ ] Much smaller images! (both in size & jpg compression)
   - [ ] Figure out anything else that's slow
 - [ ] Project "DMs"
   - [ ] DB-based DM system
   - [ ] Bot @skyline.gay account to notify users of new DMs
 - [ ] Project "Lists"
-  - [ ] Ability to use custom list as the baseFeed for a timeline
-  - [ ] Role Play: automatically create a new list from someone else's following (https://staging.bsky.app/profile/lka.bsky.social/post/3jumlzmjnf32u)
+  - [x] Ability to use custom list as the baseFeed for a timeline
+  - [x] Role Play: automatically create a new list from someone else's following (https://staging.bsky.app/profile/lka.bsky.social/post/3jumlzmjnf32u)
   - [ ] Own followers list
 - [ ] Project "Graysky Integration"
   - [ ] Expose timelines as an API
@@ -145,3 +145,4 @@ Here is the to-do list I use to track progress - feel free to contribute!
 - [ ] Very slow on mobile
 - [ ] Load more (upwards at least) doesn't load replies / threads
 - [ ] Load more downwards takes your scroll with you
+- [ ] Images in Quote Tweets
