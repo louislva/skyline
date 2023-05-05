@@ -10,10 +10,14 @@ export type ComposingPostType = {
 
 type ControllerContextType = {
   setComposingPost: (composingPost: ComposingPostType) => void;
+  notificationsCount: number;
+  setNotificationsCount: (count: number) => void;
 };
 
 export const ControllerContext = createContext<ControllerContextType>({
   setComposingPost: (_) => {},
+  notificationsCount: 0,
+  setNotificationsCount: (_) => {},
 });
 
 export function useControllerContext() {

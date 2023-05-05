@@ -1,3 +1,4 @@
+import { useControllerContext } from "@/components/ControllerContext";
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import { QuotePost } from "@/components/Post";
 import { LoadMoreButton } from "@/components/Timeline";
@@ -19,6 +20,7 @@ export type NotificationsScreenProps = {
 export default function NotificationsScreen(props: NotificationsScreenProps) {
   const { agent } = props;
   const router = useRouter();
+  const { setNotificationsCount } = useControllerContext();
 
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[] | null>(
@@ -47,6 +49,11 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
 
   useEffect(() => {
     loadMore();
+    agent.app.bsky.notification
+      .updateSeen({
+        seenAt: new Date().toJSON(),
+      })
+      .then(() => setNotificationsCount(0));
   }, []);
 
   console.log({ notifications });
@@ -74,60 +81,7 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
 
 function Notification(props: { agent: BskyAgent; notification: Notification }) {
   const { agent, notification } = props;
-  const router = useRouter();
-  const navigate = router.push;
-  const [isOpen, setIsOpen] = useState(false);
-  const isReply = notification.reason == "reply";
-
-  const linkUrl = useMemo(() => {
-    if (notification.reason == "follow") {
-      return `/profile/${notification.author.handle}`;
-    }
-    if (notification.reason == "quote" || notification.reason == "mention") {
-      return `/profile/${notification.author.handle}/post/${
-        notification.uri?.split("/")?.slice(-1)?.[0]
-      }`;
-    }
-    if (notification.post || isReply) {
-      // alert("WUT");
-      // return navigate(linkFromPost(null, notifGroup.subjectUri));
-    }
-    return "";
-  }, [notification]);
-
-  // const displayName = useMemo(() => {
-  //   if (notification.datas.length && notification.datas.length - 1 > 0) {
-  //     // @ts-ignore
-  //     return `${
-  //       notification.datas[0]?.author.displayName ||
-  //       notification.datas[0]?.author.handle
-  //     }${
-  //       ", " +
-  //       notification.datas
-  //         .slice(1, Math.min(5, notification.datas.length))
-  //         .map(
-  //           (notif: PostView) =>
-  //             notif.author.displayName || "@" + notif.author.handle
-  //         )
-  //         .join(",")
-  //     } and ${notification.datas.length - 1} others`;
-  //   } else {
-  //     return (
-  //       notification.datas[0]?.author.displayName ||
-  //       notification.datas[0]?.author.handle
-  //     );
-  //   }
-  // }, [notification.datas[0]]);
   const displayName = notification.author.displayName;
-
-  const _handleOpen = (e: SyntheticEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setIsOpen((prev) => !prev);
-  };
-
-  // Largely copied from here: https://github.com/callmearta/kite/blob/main/src/pages/notifications/Notification.tsx
 
   const [reasonSubjectPost, setReasonSubjectPost] = useState<PostView | null>(
     null

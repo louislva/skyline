@@ -2,12 +2,12 @@ import { LanguageType } from "@/helpers/classifyLanguage";
 import { TimelineConfigsType } from "@/helpers/makeFeeds";
 import { BORDER_200, BORDER_300 } from "@/helpers/styling";
 import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
+import { BskyAgent } from "@atproto/api";
 import Image from "next/image";
 import Link from "next/link";
-import TimelinePicker from "./TimelinePicker";
-import { useEffect, useState } from "react";
-import { BskyAgent } from "@atproto/api";
 import { useRouter } from "next/router";
+import { useControllerContext } from "./ControllerContext";
+import TimelinePicker from "./TimelinePicker";
 
 export default function NavBar(props: {
   agent: BskyAgent;
@@ -37,12 +37,7 @@ export default function NavBar(props: {
     setEditingCustomAITimelineId,
   } = props;
 
-  const [notificationsCount, setNotificationsCount] = useState<number>(0);
-  useEffect(() => {
-    agent.app.bsky.notification
-      .getUnreadCount()
-      .then((result) => setNotificationsCount(result.data.count));
-  });
+  const { notificationsCount } = useControllerContext();
 
   const egoProfileLink = "/profile/" + egoHandle;
 

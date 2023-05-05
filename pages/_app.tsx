@@ -145,6 +145,14 @@ export default function App({
   const router = useRouter();
 
   const [composingPost, setComposingPost] = useState<ComposingPostType>(null);
+  const [notificationsCount, setNotificationsCount] = useState<number>(0);
+  useEffect(() => {
+    if (egoHandle) {
+      agent.app.bsky.notification
+        .getUnreadCount()
+        .then((result) => setNotificationsCount(result.data.count));
+    }
+  }, [egoHandle]);
 
   return (
     <>
@@ -158,7 +166,13 @@ export default function App({
             <LoadingPlaceholder />
           </div>
         ) : egoHandle ? (
-          <ControllerContext.Provider value={{ setComposingPost }}>
+          <ControllerContext.Provider
+            value={{
+              setComposingPost,
+              notificationsCount,
+              setNotificationsCount,
+            }}
+          >
             <NavBar
               agent={agent}
               egoHandle={egoHandle}
