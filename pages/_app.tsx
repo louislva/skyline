@@ -29,6 +29,7 @@ import {
   ComposingPostType,
   ControllerContext,
 } from "@/components/ControllerContext";
+import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -102,7 +103,13 @@ export default function App({
   useFirefoxPolyfill();
 
   // Auth stuff
-  const { agent, egoHandle, egoDid, setLoginResponseData } = useAuthorization();
+  const {
+    agent,
+    egoHandle,
+    egoDid,
+    setLoginResponseData,
+    loginResponseDataHasLoaded,
+  } = useAuthorization();
 
   // Styling for body
   useBodyClassName("bg-slate-50 dark:bg-slate-900");
@@ -157,7 +164,11 @@ export default function App({
               : null
           }
         />
-        {egoHandle ? (
+        {!loginResponseDataHasLoaded ? (
+          <div className="min-h-screen w-full flex flex-col items-center justify-center pb-32">
+            <LoadingPlaceholder />
+          </div>
+        ) : egoHandle ? (
           <ControllerContext.Provider value={{ setComposingPost }}>
             <TimelinePicker
               timelineId={timelineId}

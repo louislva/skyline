@@ -19,7 +19,7 @@ export type AccessJwtType = {
 };
 
 export function useAuthorization() {
-  const [loginResponseData, setLoginResponseData] =
+  const [loginResponseData, setLoginResponseData, loginResponseDataHasLoaded] =
     useLocalStorageState<LoginResponseDataType | null>(
       "@loginResponseData",
       null
@@ -67,5 +67,11 @@ export function useAuthorization() {
     }
   }, [loginResponseData]);
 
-  return { agent, egoHandle, egoDid, setLoginResponseData };
+  return {
+    agent,
+    egoHandle,
+    egoDid,
+    setLoginResponseData,
+    loginResponseDataHasLoaded,
+  };
 }
