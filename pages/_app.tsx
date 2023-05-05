@@ -221,6 +221,7 @@ export default function App({
               language={language}
               timelineId={timelineId}
               timelines={timelineDefinitions}
+              setLoginResponseData={setLoginResponseData}
             />
             {(createTimelineModal || editingCustomAITimelineId) && (
               <ConfigureTimelineModal

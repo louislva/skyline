@@ -2,6 +2,7 @@ import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import Post from "@/components/Post";
 import RichTextReact from "@/components/RichTextReact";
 import {
+  LoginResponseDataType,
   feedViewPostToSkylinePost,
   getFollowsNoCache,
   mergeConversationsInstant,
@@ -25,6 +26,7 @@ export type ProfileScreenProps = {
   egoDid: string;
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (configs: TimelineConfigsType) => void;
+  setLoginResponseData: (data: LoginResponseDataType | null) => void;
 };
 export default function ProfileScreen(props: ProfileScreenProps) {
   const {
@@ -33,6 +35,7 @@ export default function ProfileScreen(props: ProfileScreenProps) {
     egoDid,
     customTimelineConfigs,
     setCustomTimelineConfigs,
+    setLoginResponseData,
   } = props;
   const router = useRouter();
   const handle = router.query.handle as string;
@@ -151,7 +154,26 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   )}
                 </h6>
               </div>
-              {profile.did !== egoDid && (
+              {profile.did === egoDid ? (
+                // Log out button (if yourself)
+                <button
+                  className={
+                    "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white " +
+                    BORDER_300 +
+                    (postingFollow ? "opacity-50" : "")
+                  }
+                  onClick={() => {
+                    // confirmation
+                    window.confirm(
+                      "Are you sure you want to log out of this account?"
+                    ) && setLoginResponseData(null);
+                  }}
+                >
+                  <span className="material-icons text-xl mr-1">logout</span>
+                  Sign out
+                </button>
+              ) : (
+                // Follow button (if not yourself)
                 <button
                   className={
                     "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
