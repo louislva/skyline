@@ -5,8 +5,12 @@ import { TimelineDefinitionsType, TimelineIdType } from "@/helpers/timelines";
 import Image from "next/image";
 import Link from "next/link";
 import TimelinePicker from "./TimelinePicker";
+import { useEffect, useState } from "react";
+import { BskyAgent } from "@atproto/api";
+import { useRouter } from "next/router";
 
 export default function NavBar(props: {
+  agent: BskyAgent;
   egoHandle: string;
   timelineId: TimelineIdType;
   setTimelineId: (timelineId: TimelineIdType) => void;
@@ -18,7 +22,9 @@ export default function NavBar(props: {
   setCreateTimelineModalOpen: (open: boolean) => void;
   setEditingCustomAITimelineId: (id: string | null) => void;
 }) {
+  const router = useRouter();
   const {
+    agent,
     egoHandle,
     timelineId,
     setTimelineId,
@@ -30,6 +36,17 @@ export default function NavBar(props: {
     setCreateTimelineModalOpen,
     setEditingCustomAITimelineId,
   } = props;
+
+  const [notificationsCount, setNotificationsCount] = useState<number>(0);
+  useEffect(() => {
+    agent.app.bsky.notification
+      .getUnreadCount()
+      .then((result) => setNotificationsCount(result.data.count));
+  });
+
+  const egoProfileLink = "/profile/" + egoHandle;
+
+  console.log(router.asPath);
 
   return (
     <>
@@ -76,15 +93,41 @@ export default function NavBar(props: {
           )}
         </div>
         <div className="px-1 h-16 flex flex-row">
-          <Link
+          {/* <Link
             href={"/messages"}
             className="w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center material-icons-outlined text-3xl"
           >
             email
+          </Link> */}
+          <Link
+            href={"/notifications"}
+            className={
+              "w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center text-3xl " +
+              (router.asPath === "/notifications"
+                ? "material-icons "
+                : "material-icons-outlined ")
+            }
+          >
+            notifications
+            {!!notificationsCount && (
+              <div
+                className="-ml-4 -mt-5 h-5 font-sans font-bold bg-blue-600 text-white text-sm p-1 leading-none flex justify-center items-center rounded-full border border-transparent dark:border-slate-800 "
+                style={{
+                  minWidth: 5 / 4 + "rem",
+                }}
+              >
+                {notificationsCount}
+              </div>
+            )}
           </Link>
           <Link
-            href={"/profile/" + egoHandle}
-            className="w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center material-icons-outlined text-3xl"
+            href={egoProfileLink}
+            className={
+              "w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center text-3xl " +
+              (router.asPath == egoProfileLink
+                ? "material-icons "
+                : "material-icons-outlined ")
+            }
           >
             person
           </Link>

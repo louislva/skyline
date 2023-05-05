@@ -110,7 +110,7 @@ export default function App({
   } = useAuthorization();
 
   // Styling for body
-  useBodyClassName("bg-slate-50 dark:bg-slate-900");
+  useBodyClassName("bg-slate-200 dark:bg-slate-900");
 
   // Build timelines
   const [language, setLanguage] = useLocalStorageState<LanguageType>(
@@ -152,7 +152,7 @@ export default function App({
         <title>Skyline</title>
         <link rel="icon" href="/skyline-16.png" />
       </Head>
-      <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
+      <div className="w-full min-h-screen bg-slate-200 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
         {!loginResponseDataHasLoaded ? (
           <div className="min-h-screen w-full flex flex-col items-center justify-center pb-32">
             <LoadingPlaceholder />
@@ -160,6 +160,7 @@ export default function App({
         ) : egoHandle ? (
           <ControllerContext.Provider value={{ setComposingPost }}>
             <NavBar
+              agent={agent}
               egoHandle={egoHandle}
               timelineId={timelineId}
               setTimelineId={setTimelineId}

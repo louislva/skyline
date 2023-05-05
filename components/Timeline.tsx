@@ -191,7 +191,10 @@ export default function Timeline(props: {
   );
 }
 
-function LoadMoreButton(props: { loadMore: () => void; loading: boolean }) {
+export function LoadMoreButton(props: {
+  loadMore: () => void;
+  loading: boolean;
+}) {
   const { loadMore, loading } = props;
 
   const buttonRef = useRef<HTMLButtonElement>(null);
