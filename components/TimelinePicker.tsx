@@ -76,7 +76,7 @@ export default function TimelinePicker(props: {
           <span className="material-icons mr-2">
             {timelines[timelineId].icon}
           </span>
-          <span className="text-xs xs:text-base flex-1">
+          <span className="text-sm xs:text-base flex-1">
             {timelines[timelineId].name}
           </span>
           <span className="material-icons ml-2">

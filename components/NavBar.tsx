@@ -35,7 +35,7 @@ export default function NavBar(props: {
     <>
       <div
         className={
-          "fixed flex flex-row items-center bg-white border-b-2 w-full z-20" +
+          "fixed flex flex-row items-center bg-white dark:bg-slate-800 border-b-2 w-full z-20" +
           BORDER_300
         }
       >
@@ -78,13 +78,13 @@ export default function NavBar(props: {
         <div className="px-1 h-16 flex flex-row">
           <Link
             href={"/messages"}
-            className="w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 text-slate-800 flex justify-center items-center material-icons-outlined text-3xl"
+            className="w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center material-icons-outlined text-3xl"
           >
             email
           </Link>
           <Link
             href={"/profile/" + egoHandle}
-            className="w-14 h-16 hover:bg-black/10 text-slate-800 flex justify-center items-center material-icons-outlined text-3xl"
+            className="w-14 h-16 hover:bg-black/10 dark:hover:bg-white/10 flex justify-center items-center material-icons-outlined text-3xl"
           >
             person
           </Link>
