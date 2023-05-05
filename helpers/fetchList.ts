@@ -71,6 +71,7 @@ export default class ListFetcher {
       // Math.max: get the newest/youngest of these values:
       ...Object.values(this.state).map((user) => {
         // Math.min(): get earliest/oldest post for this user
+        if (user.feed.length === 0) return 0;
         return Math.min(
           ...user.feed.map((post) => this.getDateFromPost(post).getTime())
         );
@@ -127,7 +128,11 @@ export default class ListFetcher {
         if (response.success) {
           return { feed: response.data.feed, cursor: response.data.cursor };
         }
-        // TODO error handling and all that jazz
+        throw new Error("getAuthorFeed not successful");
+      })
+      .catch((e) => {
+        // TODO: sentry
+        return { feed: [], cursor: undefined };
       });
 
   getHandlesNeedingMorePosts = (oldestTs: Date) => {
