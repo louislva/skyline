@@ -499,23 +499,7 @@ function ContentStandalone(props: {
           isLiked={isLiked}
           likeCount={likeCount}
         />
-        {post.score && (
-          <>
-            {/* cog icon / settings icon bec it's a machine */}
-            <div className="material-icons ml-auto mr-1 text-slate-400">
-              settings
-            </div>
-            <div className="text-slate-400">
-              {/* {(post.score * 100).toFixed(2)} */}
-              {(
-                Math.pow(Math.abs(post.score), 0.3) *
-                Math.sign(post.score) *
-                100
-              ).toFixed(0)}
-              % match
-            </div>
-          </>
-        )}
+        <ScoreIndicator score={post.score} />
       </div>
     </div>
   );
@@ -704,23 +688,7 @@ function ContentInline(props: {
             isLiked={isLiked}
             likeCount={likeCount}
           />
-          {post.score && (
-            <>
-              {/* cog icon / settings icon bec it's a machine */}
-              <div className="material-icons ml-auto mr-1 text-slate-400">
-                settings
-              </div>
-              <div className="text-slate-400">
-                {/* {(post.score * 100).toFixed(2)} */}
-                {(
-                  Math.pow(Math.abs(post.score), 0.3) *
-                  Math.sign(post.score) *
-                  100
-                ).toFixed(0)}
-                % match
-              </div>
-            </>
-          )}
+          <ScoreIndicator score={post.score} />
         </div>
       </div>
     </Link>
@@ -771,27 +739,27 @@ function ReplyButton(props: {
   const { setComposingPost } = useControllerContext();
 
   return (
-    <>
-      <button
-        className="rounded-full hover:bg-amber-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
-        onClick={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setComposingPost({
-            replyingTo: {
-              parent: post.postView,
-              root: ancestorPosts.concat([post])[0]?.postView,
-            },
-            text: "",
-          });
-        }}
-      >
-        <div className="material-icons text-slate-700 dark:text-slate-300">
+    <button
+      className="rounded-full flex flex-row items-center flex-1"
+      onClick={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setComposingPost({
+          replyingTo: {
+            parent: post.postView,
+            root: ancestorPosts.concat([post])[0]?.postView,
+          },
+          text: "",
+        });
+      }}
+    >
+      <div className="group flex flex-row mr-4">
+        <div className="material-icons text-slate-700 dark:text-slate-300 p-2 -m-2 rounded-full group-hover:bg-amber-500/20">
           chat_bubble_outline
         </div>
-      </button>
-      <div className="mr-4">{replyCount}</div>
-    </>
+        <div className="ml-1">{replyCount}</div>
+      </div>
+    </button>
   );
 }
 function RepostButton(props: {
@@ -825,6 +793,7 @@ function RepostButton(props: {
             <button
               className="flex-1 hover:bg-black/10 dark:hover:bg-white/10 flex flex-row items-center justify-start text-left"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 toggleReposted();
                 setDropdownOpen(false);
@@ -835,6 +804,7 @@ function RepostButton(props: {
             <button
               className="flex-1 hover:bg-black/10 dark:hover:bg-white/10 flex flex-row items-center justify-start text-left"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 quoteTweet();
                 setDropdownOpen(false);
@@ -846,7 +816,7 @@ function RepostButton(props: {
         )}
       </div>
       <button
-        className="rounded-full hover:bg-green-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+        className="rounded-full flex flex-row items-center flex-1"
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -857,21 +827,20 @@ function RepostButton(props: {
           }
         }}
       >
-        <div
-          className={
-            "material-icons " +
-            (isReposted
-              ? "text-green-500"
-              : "text-slate-700 dark:text-slate-300")
-          }
-          style={{
-            paddingRight: 0.66 / 16 + "rem",
-          }}
-        >
-          repeat
+        <div className="group flex flex-row mr-4">
+          <div
+            className={
+              "material-icons p-2 -m-2 rounded-full group-hover:bg-green-500/20 " +
+              (isReposted
+                ? "text-green-500"
+                : "text-slate-700 dark:text-slate-300")
+            }
+          >
+            repeat
+          </div>
+          <div className="ml-1">{repostCount}</div>
         </div>
       </button>
-      <div className="mr-4">{repostCount}</div>
     </>
   );
 }
@@ -885,26 +854,42 @@ function LikeButton(props: {
   return (
     <>
       <button
-        className="rounded-full hover:bg-red-500/20 p-2 -m-2 flex justify-center items-center -mr-1"
+        className="rounded-full flex flex-row items-center flex-1"
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
           toggleLiked();
         }}
       >
-        <div
-          className={
-            "material-icons " +
-            (isLiked ? "text-red-500" : "text-slate-700 dark:text-slate-300")
-          }
-          style={{
-            paddingRight: 0.66 / 16 + "rem",
-          }}
-        >
-          {isLiked ? "favorite" : "favorite_border"}
+        <div className="group flex flex-row mr-4">
+          <div
+            className={
+              "material-icons p-2 -m-2 rounded-full group-hover:bg-red-500/20 " +
+              (isLiked ? "text-red-500" : "text-slate-700 dark:text-slate-300")
+            }
+          >
+            {isLiked ? "favorite" : "favorite_border"}
+          </div>
+          <div className="ml-1">{likeCount}</div>
         </div>
       </button>
-      <div className="mr-4">{likeCount}</div>
     </>
+  );
+}
+function ScoreIndicator(props: { score: number | undefined }) {
+  const { score } = props;
+
+  return score ? (
+    <div className="flex-1 flex flex-row items-center justify-end">
+      {/* cog icon / settings icon bec it's a machine */}
+      <div className="material-icons mr-1 text-slate-400">bolt</div>
+      <div className="text-slate-400">
+        {/* {(score * 100).toFixed(2)} */}
+        {(Math.pow(Math.abs(score), 0.3) * Math.sign(score) * 100).toFixed(0)}%
+        match
+      </div>
+    </div>
+  ) : (
+    <div className="flex-1" />
   );
 }
