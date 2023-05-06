@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+  skylineapp:
+    container_name: skylineapp
+    image: mcr.microsoft.com/devcontainers/javascript-node:0-20
+    tty: true
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - PGSQLCONN=host = localhost; port = 5432; database = db; user id = dbuser; password = b03f5f7f11d50a3a;
+    volumes:
+      - ..:/workspace:cached
+    init: true
+    network_mode: service:postgres
+    
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=b03f5f7f11d50a3a
+    volumes:
+      - ../db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - /var/run/docker.sock:/var/run/docker-host.sock
