@@ -1,14 +1,32 @@
 version: '3.8'
 
 services:
-  app:
+  skyline:
+    container_name: skyline
     image: mcr.microsoft.com/devcontainers/javascript-node:0-20
     volumes:
       - .:/workspace
     working_dir: /workspace
     ports:
       - "3000:3000"
+    depends_on:
+      - postgresdb
+    environment:
+      - PGSQLCONN=host = localhost; port = 5432; database = db; user id = dbuser; password = b03f5f7f11d50a3a;
     command:  >
       sh -c "yarn install &&
             yarn dev &&
             sleep infinity"
+    
+  postgresdb:
+    container_name: postgresdb
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=b03f5f7f11d50a3a
+    volumes:
+      - ./db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - /var/run/docker.sock:/var/run/docker-host.sock
