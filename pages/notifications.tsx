@@ -1,7 +1,7 @@
 import { useControllerContext } from "@/components/ControllerContext";
+import { LoadMoreButton } from "@/components/LoadMoreButton";
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import { QuotePost } from "@/components/Post";
-import { LoadMoreButton } from "@/components/Timeline";
 import { RecordType } from "@/helpers/contentTypes";
 import { BORDER_300 } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
@@ -199,17 +199,17 @@ function Notification(props: {
       <div className="flex-1 flex flex-col">
         <div className="flex flex-row items-center">
           {notifications.slice(0, 5).map((item, index) => (
-        <Link
+            <Link
               href={`/profile/${item.author.handle}`}
               className="w-8 h-8 rounded-full bg-blue-600 overflow-hidden mr-1"
               style={{
                 zIndex: 11 - index,
               }}
-        >
+            >
               {item.author.avatar && (
                 <img src={item.author.avatar} className="w-full h-full" />
-          )}
-        </Link>
+              )}
+            </Link>
           ))}
           {notifications.length > 5 && (
             <div className="text-slate-500 dark:text-slate-400 text-lg ml-1">
@@ -223,18 +223,18 @@ function Notification(props: {
               href={`/profile/${notification.author.handle}`}
               className="inline"
             >
-            <strong className="mr-1">{displayName}</strong>
-          </Link>
-          {
+              <strong className="mr-1">{displayName}</strong>
+            </Link>
             {
-              like: "liked your post",
-              repost: "reposted your post",
-              follow: "followed you",
-              reply: "replied to your post",
-              quote: "quoted your post",
-              mention: "mentioned you",
-            }[notification.reason as string]
-          }
+              {
+                like: "liked your post",
+                repost: "reposted your post",
+                follow: "followed you",
+                reply: "replied to your post",
+                quote: "quoted your post",
+                mention: "mentioned you",
+              }[notification.reason as string]
+            }
           </div>
           <div className="ml-2 text-right text-slate-400">
             {moment(new Date(notification.indexedAt)).fromNow()}

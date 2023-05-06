@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import type { AppProps } from "next/app";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ConfigureTimelineModal from "@/components/ConfigureTimelineModal";
 import {
@@ -28,6 +28,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
 import ProfileScreen from "./profile/[handle]";
+import { useTimelineController } from "@/helpers/timelineController";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -93,6 +94,43 @@ export function useBodyClassName(className: string) {
     };
   }, [className]);
 }
+export function usePreserveScroll() {
+  const router = useRouter();
+
+  const scrollPositions = useRef<{ [url: string]: number }>({});
+  const isBack = useRef(false);
+
+  useEffect(() => {
+    router.beforePopState(() => {
+      isBack.current = true;
+      return true;
+    });
+
+    const onRouteChangeStart = () => {
+      const url = router.pathname;
+      scrollPositions.current[url] = window.scrollY;
+    };
+
+    const onRouteChangeComplete = (url: any) => {
+      if (isBack.current && scrollPositions.current[url]) {
+        window.scroll({
+          top: scrollPositions.current[url],
+          behavior: "auto",
+        });
+      }
+
+      isBack.current = false;
+    };
+
+    router.events.on("routeChangeStart", onRouteChangeStart);
+    router.events.on("routeChangeComplete", onRouteChangeComplete);
+
+    return () => {
+      router.events.off("routeChangeStart", onRouteChangeStart);
+      router.events.off("routeChangeComplete", onRouteChangeComplete);
+    };
+  }, [router]);
+}
 
 export default function App({
   Component,
@@ -102,6 +140,7 @@ export default function App({
   pageProps: AppProps["pageProps"];
 }) {
   useFirefoxPolyfill();
+  usePreserveScroll();
 
   // Auth stuff
   const {
@@ -161,6 +200,14 @@ export default function App({
     }
   }, [egoHandle]);
 
+  const timelineController = useTimelineController(
+    agent,
+    egoHandle,
+    timelineDefinitions,
+    customTimelineConfigs,
+    timelineId
+  );
+
   return (
     <>
       <Head>
@@ -217,7 +264,6 @@ export default function App({
             <Component
               // React stuff
               {...pageProps}
-              key={router.asPath}
               // Bsky stuff
               egoHandle={egoHandle}
               egoDid={egoDid}
@@ -229,6 +275,7 @@ export default function App({
               timelineId={timelineId}
               timelines={timelineDefinitions}
               setLoginResponseData={setLoginResponseData}
+              timelineController={timelineController}
             />
             {(createTimelineModal || editingCustomAITimelineId) && (
               <ConfigureTimelineModal

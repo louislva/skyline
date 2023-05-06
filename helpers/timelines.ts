@@ -14,7 +14,7 @@ export type TimelineDefinitionsType = {
 };
 
 // HELPERS
-function getDefaultTimelineConfigs(
+export function getDefaultTimelineConfigs(
   language: LanguageType
 ): TimelineConfigsType {
   return {
