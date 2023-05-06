@@ -7,6 +7,7 @@ import { BORDER_300 } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
 import { Notification } from "@atproto/api/dist/client/types/app/bsky/notification/listNotifications";
+import moment from "moment";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { SyntheticEvent, useEffect, useMemo, useState } from "react";
@@ -56,7 +57,53 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
       .then(() => setNotificationsCount(0));
   }, []);
 
-  console.log({ notifications });
+  const cosignedNotifications = useMemo<Notification[][]>(() => {
+    if (!notifications) return [];
+    return Object.values(
+      notifications
+        .sort((a, b) => {
+          return (
+            new Date(b.indexedAt).getTime() - new Date(a.indexedAt).getTime()
+          );
+        })
+        .reduce((acc, item) => {
+          let id = "";
+          switch (item.reason) {
+            case "like":
+              id = "like-" + item.reasonSubject;
+              break;
+            case "repost":
+              id = "repost-" + item.reasonSubject;
+              break;
+            case "follow":
+              id =
+                "follow-" +
+                Math.floor(
+                  new Date(item.indexedAt).getTime() / (1000 * 60 * 30)
+                );
+              break;
+            case "reply":
+              id = "reply-" + item.cid;
+              break;
+            case "quote":
+              id = "quote-" + item.cid;
+              break;
+            case "mention":
+              id = "mention-" + item.cid;
+              break;
+            default:
+              break;
+          }
+          acc[id] = acc[id] || [];
+          acc[id].push(item);
+          return acc;
+        }, {} as { [key: string]: Notification[] })
+    ).sort((a, b) => {
+      return (
+        new Date(b[0].indexedAt).getTime() - new Date(a[0].indexedAt).getTime()
+      );
+    });
+  }, [notifications]);
 
   return (
     <div
@@ -67,8 +114,8 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
     >
       {true ? (
         <ul>
-          {notifications?.map((item) => (
-            <Notification agent={agent} notification={item} />
+          {cosignedNotifications?.map((item) => (
+            <Notification agent={agent} notifications={item} />
           ))}
           <LoadMoreButton loadMore={loadMore} loading={loading} />
         </ul>
@@ -79,9 +126,20 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
   );
 }
 
-function Notification(props: { agent: BskyAgent; notification: Notification }) {
-  const { agent, notification } = props;
-  const displayName = notification.author.displayName;
+function Notification(props: {
+  agent: BskyAgent;
+  notifications: Notification[];
+}) {
+  const { agent, notifications } = props;
+  const notification = notifications[0];
+
+  const displayName =
+    notification.author.displayName +
+    (notifications.length > 2
+      ? ` and ${notifications.length - 1} others`
+      : notifications.length > 1
+      ? ` and 1 other person`
+      : "");
 
   const [reasonSubjectPost, setReasonSubjectPost] = useState<PostView | null>(
     null
@@ -139,16 +197,32 @@ function Notification(props: { agent: BskyAgent; notification: Notification }) {
         }
       </div>
       <div className="flex-1 flex flex-col">
+        <div className="flex flex-row items-center">
+          {notifications.slice(0, 5).map((item, index) => (
         <Link
-          href={`/profile/${notification.author.handle}`}
-          className="w-8 h-8 rounded-full bg-blue-600 overflow-hidden mr-2"
+              href={`/profile/${item.author.handle}`}
+              className="w-8 h-8 rounded-full bg-blue-600 overflow-hidden mr-1"
+              style={{
+                zIndex: 11 - index,
+              }}
         >
-          {notification.author.avatar && (
-            <img src={notification.author.avatar} className="w-full h-full" />
+              {item.author.avatar && (
+                <img src={item.author.avatar} className="w-full h-full" />
           )}
         </Link>
-        <div className="flex flex-row items-center">
-          <Link href={`/profile/${notification.author.handle}`}>
+          ))}
+          {notifications.length > 5 && (
+            <div className="text-slate-500 dark:text-slate-400 text-lg ml-1">
+              +{notifications.length - 5}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-row items-start">
+          <div className="flex-1">
+            <Link
+              href={`/profile/${notification.author.handle}`}
+              className="inline"
+            >
             <strong className="mr-1">{displayName}</strong>
           </Link>
           {
@@ -161,7 +235,10 @@ function Notification(props: { agent: BskyAgent; notification: Notification }) {
               mention: "mentioned you",
             }[notification.reason as string]
           }
-          <span className="ml-1 text-right text-slate-400">1h</span>
+          </div>
+          <div className="ml-2 text-right text-slate-400">
+            {moment(new Date(notification.indexedAt)).fromNow()}
+          </div>
         </div>
         {["mention", "quote", "reply"].includes(notification.reason) ? (
           <QuotePost
