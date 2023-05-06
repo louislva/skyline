@@ -1,12 +1,18 @@
 import "@/styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import type { AppProps } from "next/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import ConfigureTimelineModal from "@/components/ConfigureTimelineModal";
+import {
+  ComposingPostType,
+  ControllerContext,
+} from "@/components/ControllerContext";
 import Header from "@/components/Header";
+import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import LoginScreen from "@/components/LoginScreen";
-import TimelinePicker from "@/components/TimelinePicker";
+import NavBar from "@/components/NavBar";
+import PostComposer from "@/components/PostComposer";
 import { useAuthorization } from "@/helpers/auth";
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { useLocalStorageState } from "@/helpers/hooks";
@@ -14,22 +20,20 @@ import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
 import { useFirefoxPolyfill } from "@/helpers/polyfill";
 import {
   CustomAITimelineType,
-  CustomAITimelinesType,
   convertOldCustomToNewConfig,
   useMigrateOldCustomTimelines,
 } from "@/helpers/timelineMigration";
 import { TimelineIdType, useTimelines } from "@/helpers/timelines";
-import { BskyAgent } from "@atproto/api";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import TimelineScreen from "./index";
 import ProfileScreen from "./profile/[handle]";
-import TweetComposer from "@/components/TweetComposer";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
   customTimelineConfigs: TimelineConfigsType,
-  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void
+  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void,
+  setTimelineId: (timelineId: TimelineIdType) => void
 ) {
   const router = useRouter();
   useEffect(() => {
@@ -56,9 +60,10 @@ function useCustomTimelineInstaller(
                 const config = json.config_new
                   ? json.config_new
                   : convertOldCustomToNewConfig(json.config);
+                const newId = Date.now().toString();
                 setCustomTimelineConfigs({
                   ...customTimelineConfigs,
-                  [Date.now().toString()]: {
+                  [newId]: {
                     ...config,
                     identity: {
                       ...config.identity,
@@ -66,6 +71,7 @@ function useCustomTimelineInstaller(
                     },
                   },
                 });
+                setTimelineId(newId);
               }
             );
           } else {
@@ -76,7 +82,7 @@ function useCustomTimelineInstaller(
     }
   }, [router.query.tl]);
 }
-function useBodyClassName(className: string) {
+export function useBodyClassName(className: string) {
   useEffect(() => {
     className.split(" ").forEach((name) => document.body.classList.add(name));
 
@@ -97,18 +103,17 @@ export default function App({
 }) {
   useFirefoxPolyfill();
 
-  // Bluesky API
-  const agent = useRef<BskyAgent>(
-    new BskyAgent({
-      service: "https://bsky.social",
-    })
-  ).current;
-
   // Auth stuff
-  const { egoHandle, egoDid, setLoginResponseData } = useAuthorization(agent);
+  const {
+    agent,
+    egoHandle,
+    egoDid,
+    setLoginResponseData,
+    loginResponseDataHasLoaded,
+  } = useAuthorization();
 
   // Styling for body
-  useBodyClassName("bg-slate-50 dark:bg-slate-900");
+  useBodyClassName("bg-slate-200 dark:bg-slate-900");
 
   // Build timelines
   const [language, setLanguage] = useLocalStorageState<LanguageType>(
@@ -124,9 +129,6 @@ export default function App({
   // Makes sure to migrate timelines from @customAITimelines into @customTimelineConfigs (if any)
   useMigrateOldCustomTimelines(customTimelineConfigs, setCustomTimelineConfigs);
 
-  // If ?tl=<key> in URL, install a new custom timeline.
-  useCustomTimelineInstaller(customTimelineConfigs, setCustomTimelineConfigs);
-
   const [timelineId_, setTimelineId] = useLocalStorageState<TimelineIdType>(
     "@timelineId",
     "following"
@@ -135,6 +137,13 @@ export default function App({
     ? timelineId_
     : "following";
 
+  // If ?tl=<key> in URL, install a new custom timeline.
+  useCustomTimelineInstaller(
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
+    setTimelineId
+  );
+
   const [createTimelineModal, setCreateTimelineModalOpen] = useState(false);
   const [editingCustomAITimelineId, setEditingCustomAITimelineId] = useState<
     string | null
@@ -142,24 +151,57 @@ export default function App({
 
   const router = useRouter();
 
+  const [composingPost, setComposingPost] = useState<ComposingPostType>(null);
+  const [notificationsCount, setNotificationsCount] = useState<number>(0);
+  useEffect(() => {
+    if (egoHandle) {
+      agent.app.bsky.notification
+        .getUnreadCount()
+        .then((result) => setNotificationsCount(result.data.count));
+    }
+  }, [egoHandle]);
+
   return (
     <>
       <Head>
         <title>Skyline</title>
         <link rel="icon" href="/skyline-16.png" />
       </Head>
-      <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
-        <Header
-          logout={
-            egoHandle
-              ? () => {
-                  setLoginResponseData(null);
-                }
-              : null
-          }
-        />
-        {egoHandle ? (
-          <>
+      <div className="w-full min-h-screen bg-slate-200 dark:bg-slate-900 dark:text-slate-100 flex flex-col items-center min-h-screen px-2">
+        {!loginResponseDataHasLoaded ? (
+          <div className="min-h-screen w-full flex flex-col items-center justify-center pb-32">
+            <LoadingPlaceholder />
+          </div>
+        ) : egoHandle ? (
+          <ControllerContext.Provider
+            value={{
+              setComposingPost,
+              notificationsCount,
+              setNotificationsCount,
+            }}
+          >
+            <NavBar
+              agent={agent}
+              egoHandle={egoHandle}
+              timelineId={timelineId}
+              setTimelineId={setTimelineId}
+              customTimelineConfigs={customTimelineConfigs}
+              setCustomTimelineConfigs={setCustomTimelineConfigs}
+              timelines={timelineDefinitions}
+              language={language}
+              setLanguage={setLanguage}
+              setCreateTimelineModalOpen={setCreateTimelineModalOpen}
+              setEditingCustomAITimelineId={setEditingCustomAITimelineId}
+            />
+            {/* <Header
+              logout={
+                egoHandle
+                  ? () => {
+                      setLoginResponseData(null);
+                    }
+                  : null
+              }
+            />
             <TimelinePicker
               timelineId={timelineId}
               setTimelineId={setTimelineId}
@@ -171,7 +213,7 @@ export default function App({
               setLanguage={setLanguage}
               setCreateTimelineModalOpen={setCreateTimelineModalOpen}
               setEditingCustomAITimelineId={setEditingCustomAITimelineId}
-            />
+            /> */}
             <Component
               // React stuff
               {...pageProps}
@@ -182,9 +224,11 @@ export default function App({
               agent={agent}
               // Skyline stuff
               customTimelineConfigs={customTimelineConfigs}
+              setCustomTimelineConfigs={setCustomTimelineConfigs}
               language={language}
               timelineId={timelineId}
               timelines={timelineDefinitions}
+              setLoginResponseData={setLoginResponseData}
             />
             {(createTimelineModal || editingCustomAITimelineId) && (
               <ConfigureTimelineModal
@@ -195,15 +239,29 @@ export default function App({
                   setEditingCustomAITimelineId(null);
                 }}
                 editingCustomAITimelineId={editingCustomAITimelineId}
+                setTimelineId={setTimelineId}
               />
             )}
-            <TweetComposer agent={agent} />
-          </>
+            <PostComposer
+              agent={agent}
+              egoHandle={egoHandle}
+              composingPost={composingPost}
+              setComposingPost={setComposingPost}
+            />
+          </ControllerContext.Provider>
         ) : (
-          <LoginScreen
-            setLoginResponseData={setLoginResponseData}
-            agent={agent}
-          />
+          <>
+            <Header
+              logout={
+                egoHandle
+                  ? () => {
+                      setLoginResponseData(null);
+                    }
+                  : null
+              }
+            />
+            <LoginScreen agent={agent} />
+          </>
         )}
       </div>
       <Analytics />

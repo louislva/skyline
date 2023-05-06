@@ -10,13 +10,19 @@ import { ExpandedPostView, RecordType, SkylinePostType } from "./contentTypes";
 
 let followsCache: ProfileView[] | null = null;
 let followersCache: ProfileView[] | null = null;
-let threadCache = new Cache<GetPostThreadResponse>("threadCache");
+let threadCache = new Cache<GetPostThreadResponse>(
+  "threadCache",
+  // TODO: do something about this shit. takes up way too much storage too fast
+  1000 * 12 * 10, // 2 minutes
+  false
+);
 
 export async function getFollows(
   agent: BskyAgent,
   identifier: string,
   maxPages: number = 10
 ): Promise<ProfileView[]> {
+  // TODO: add identifier to cache
   if (followsCache) return followsCache;
 
   let follows: ProfileView[] = [];
@@ -39,6 +45,33 @@ export async function getFollows(
     }
   }
   followsCache = follows;
+  return follows;
+}
+export async function getFollowsNoCache(
+  agent: BskyAgent,
+  identifier: string,
+  maxPages: number = 10
+) {
+  let follows: ProfileView[] = [];
+  let cursor;
+  for (let i = 0; i < maxPages; i++) {
+    const response = await agent.getFollows({
+      actor: identifier,
+      cursor,
+    });
+
+    if (response.success) {
+      follows = follows.concat(response.data.follows);
+      if (!response.data.cursor || response.data.follows.length === 0) {
+        break;
+      }
+      cursor = response.data.cursor;
+    } else {
+      // TODO: Handle error
+      break;
+    }
+  }
+
   return follows;
 }
 async function getFollowers(
@@ -85,14 +118,23 @@ export async function getMutuals(
   const mutuals = follows.filter((f) => isDidAFollower[f.did]);
   return mutuals;
 }
-async function getThread(agent: BskyAgent, uri: string) {
-  if (threadCache.get(uri)) return threadCache.get(uri)!;
 
+export async function getThreadCacheFree(
+  agent: BskyAgent,
+  uri: string
+): Promise<GetPostThreadResponse> {
   const response = await agent.getPostThread({
     uri,
   });
   if (response.success) threadCache.set(uri, response);
   return response;
+}
+async function getThread(
+  agent: BskyAgent,
+  uri: string
+): Promise<GetPostThreadResponse> {
+  if (threadCache.get(uri)) return threadCache.get(uri)!;
+  return await getThreadCacheFree(agent, uri);
 }
 export function getThreadCacheOnly(uri: string): GetPostThreadResponse | null {
   return threadCache.get(uri) || null;
@@ -116,6 +158,20 @@ export function unrollThread(response: GetPostThreadResponse) {
   }
 
   return newPosts;
+}
+export function threadResponseToSkylinePost(
+  response: GetPostThreadResponse
+): SkylinePostType {
+  const data = response.data;
+  const thread = data.thread;
+  const unrolled = unrollThread(response);
+  const ancestors = unrolled.slice(0, unrolled.length - 1);
+  const post = unrolled[unrolled.length - 1];
+
+  return {
+    ...post,
+    replyingTo: ancestors,
+  };
 }
 export async function mergeConversationsContinual(
   agent: BskyAgent,

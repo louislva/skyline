@@ -3,6 +3,7 @@
 
 export default class Cache<T> {
   name: string;
+  disabled: boolean;
   cacheByTimestamp: {
     [timestamp: string]: {
       [key: string]: T;
@@ -13,9 +14,11 @@ export default class Cache<T> {
 
   constructor(
     name: string,
-    storeDuration: number = 1000 * 60 * 60 * 12 /* 12 hours */
+    storeDuration: number = 1000 * 60 * 60 * 12 /* 12 hours */,
+    disabled: boolean = false
   ) {
     this.name = "@cache/" + name;
+    this.disabled = disabled;
 
     this.chunkLength = storeDuration / 10;
     this.maxChunks = 10;
@@ -27,7 +30,6 @@ export default class Cache<T> {
     } else {
       this.cacheByTimestamp = {};
     }
-    this.removeExpired();
     this.save();
   }
   removeExpired() {
@@ -39,8 +41,12 @@ export default class Cache<T> {
     );
   }
   save() {
+    this.removeExpired();
     if (typeof window !== "undefined")
-      localStorage.setItem(this.name, JSON.stringify(this.cacheByTimestamp));
+      localStorage.setItem(
+        this.name,
+        this.disabled ? "{}" : JSON.stringify(this.cacheByTimestamp)
+      );
   }
   get(key: string): T | undefined {
     return Object.entries(this.cacheByTimestamp)
@@ -52,9 +58,13 @@ export default class Cache<T> {
       .find((cache) => cache[1][key])?.[1][key];
   }
   set(key: string, value: T) {
-    const nowChunk = Math.floor(Date.now() / this.chunkLength);
-    this.cacheByTimestamp[nowChunk] = this.cacheByTimestamp[nowChunk] || {};
-    this.cacheByTimestamp[nowChunk][key] = value;
-    this.save();
+    try {
+      const nowChunk = Math.floor(Date.now() / this.chunkLength);
+      this.cacheByTimestamp[nowChunk] = this.cacheByTimestamp[nowChunk] || {};
+      this.cacheByTimestamp[nowChunk][key] = value;
+      this.save();
+    } catch (error) {
+      console.error("Error saving to cache: ", error);
+    }
   }
 }

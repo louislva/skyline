@@ -1,8 +1,8 @@
 /* fonts: inter */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
-/* material icons */
-@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+/* material icons & material icons outlined */
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined");
 .material-icons {
   font-size: inherit;
 }

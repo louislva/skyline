@@ -1,105 +1,42 @@
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import Post from "@/components/Post";
+import RichTextReact from "@/components/RichTextReact";
 import {
+  LoginResponseDataType,
   feedViewPostToSkylinePost,
+  getFollowsNoCache,
   mergeConversationsInstant,
 } from "@/helpers/bsky";
 import { SkylinePostType } from "@/helpers/contentTypes";
-import { BORDER_200, BORDER_300, LINK } from "@/helpers/styling";
-import { BskyAgent, RichText } from "@atproto/api";
+import {
+  TimelineConfigsType,
+  getDefaultTimelineConfig,
+} from "@/helpers/makeFeeds";
+import { BORDER_200, BORDER_300 } from "@/helpers/styling";
+import { BskyAgent } from "@atproto/api";
 import { ProfileViewDetailed } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
-import Link from "next/link";
+import moment from "moment";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-
-function RichTextReact(props: { agent: BskyAgent; text: string }) {
-  const { agent, text } = props;
-  const [segments, setSegments] = useState<
-    {
-      type: "text" | "link" | "mention";
-      text: string;
-      value?: string;
-    }[]
-  >([]);
-
-  useEffect(() => {
-    (async () => {
-      const rt = new RichText({
-        text,
-      });
-      await rt.detectFacets(agent); // automatically detects mentions and links
-
-      let newSegments: typeof segments = [];
-
-      // @ts-expect-error
-      for (const segment of rt.segments()) {
-        if (segment.isLink()) {
-          newSegments.push({
-            type: "link",
-            text: segment.text,
-            value: segment.link?.uri,
-          });
-        } else if (segment.isMention()) {
-          newSegments.push({
-            type: "mention",
-            text: segment.text,
-            value: segment.mention.did,
-          });
-        } else {
-          newSegments.push({
-            type: "text",
-            text: segment.text,
-          });
-        }
-      }
-
-      setSegments(newSegments);
-    })();
-  }, [text]);
-
-  return (
-    <>
-      {segments.map((segment) => {
-        return (
-          <>
-            {segment.text.split("\n").map((line, index) => {
-              return (
-                <>
-                  {index !== 0 && <br />}
-                  {segment.type === "link" ? (
-                    <a
-                      href={segment.value}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={LINK}
-                    >
-                      {line}
-                    </a>
-                  ) : segment.type === "mention" ? (
-                    <Link href={`/profile/${segment.value}`} className={LINK}>
-                      {line}
-                    </Link>
-                  ) : (
-                    line
-                  )}
-                </>
-              );
-            })}
-          </>
-        );
-      })}
-    </>
-  );
-}
+import { useEffect, useMemo, useState } from "react";
 
 // TIMELINE SCREEN
 export type ProfileScreenProps = {
   agent: BskyAgent;
   egoHandle: string;
   egoDid: string;
+  customTimelineConfigs: TimelineConfigsType;
+  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void;
+  setLoginResponseData: (data: LoginResponseDataType | null) => void;
 };
 export default function ProfileScreen(props: ProfileScreenProps) {
-  const { agent, egoHandle, egoDid } = props;
+  const {
+    agent,
+    egoHandle,
+    egoDid,
+    customTimelineConfigs,
+    setCustomTimelineConfigs,
+    setLoginResponseData,
+  } = props;
   const router = useRouter();
   const handle = router.query.handle as string;
 
@@ -152,6 +89,26 @@ export default function ProfileScreen(props: ProfileScreenProps) {
 
   const [postingFollow, setPostingFollow] = useState<boolean>(false);
 
+  const [optionsDropdown, setOptionsDropdown] = useState<boolean>(false);
+  useEffect(() => {
+    // if click anywhere on the page, this dropdown is closed
+    const onBodyClick = () => {
+      setOptionsDropdown(false);
+    };
+    document.body.addEventListener("click", onBodyClick);
+    return () => {
+      document.body.removeEventListener("click", onBodyClick);
+    };
+  }, []);
+
+  const lists = useMemo(() => {
+    return Object.entries(customTimelineConfigs).filter(
+      ([id, config]) => config.behaviour.baseFeed === "list"
+    );
+  }, [customTimelineConfigs]);
+  const createListFromFollowsEnabled = (profile?.followsCount || 1000) <= 125;
+  const optionsEnabled = !!lists?.length || createListFromFollowsEnabled;
+
   return (
     <div
       className={
@@ -197,12 +154,31 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   )}
                 </h6>
               </div>
-              {profile.did !== egoDid && (
+              {profile.did === egoDid ? (
+                // Log out button (if yourself)
+                <button
+                  className={
+                    "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white " +
+                    BORDER_300 +
+                    (postingFollow ? "opacity-50" : "")
+                  }
+                  onClick={() => {
+                    // confirmation
+                    window.confirm(
+                      "Are you sure you want to log out of this account?"
+                    ) && setLoginResponseData(null);
+                  }}
+                >
+                  <span className="material-icons text-xl mr-1">logout</span>
+                  Sign out
+                </button>
+              ) : (
+                // Follow button (if not yourself)
                 <button
                   className={
                     "flex flex-row items-center justify-center w-32 h-8 mt-3 rounded-md pr-1 text-base " +
                     (isFollowing
-                      ? "bg-slate-200 dark:bg-slate-700 text-white " +
+                      ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white " +
                         BORDER_300
                       : "bg-blue-500 text-white ") +
                     (postingFollow ? "opacity-50" : "")
@@ -236,6 +212,113 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   </span>
                   {isFollowing ? "Following" : "Follow"}
                 </button>
+              )}
+              {optionsEnabled && (
+                <div className="relative ml-2 mt-3 ">
+                  <button
+                    className={
+                      "flex flex-row items-center justify-center w-8 h-8 rounded-md text-base bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white material-icons "
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOptionsDropdown(!optionsDropdown);
+                    }}
+                  >
+                    more_horiz
+                  </button>
+                  {optionsDropdown && (
+                    <div
+                      className={
+                        "absolute w-80 mt-2 z-30 border-2 right-0 flex flex-col items-start rounded-md text-base bg-slate-200 dark:bg-slate-700 overflow-hidden " +
+                        BORDER_300
+                      }
+                    >
+                      {createListFromFollowsEnabled && (
+                        <button
+                          className={
+                            "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600"
+                          }
+                          onClick={async () => {
+                            const following = await getFollowsNoCache(
+                              agent,
+                              profile.did
+                            );
+                            const handles = following
+                              .map((follow) => follow.handle)
+                              .reverse(); // oldest to newest follow, ish
+                            setCustomTimelineConfigs({
+                              ...customTimelineConfigs,
+                              [Date.now()]: {
+                                ...getDefaultTimelineConfig(),
+                                behaviour: {
+                                  ...getDefaultTimelineConfig().behaviour,
+                                  baseFeed: "list",
+                                  list: [profile.handle].concat(handles),
+                                },
+                                identity: {
+                                  ...getDefaultTimelineConfig().identity,
+                                  name: `${profile.displayName}'s following`,
+                                  description: `Posts from people that ${
+                                    profile.displayName
+                                  } (@${
+                                    profile.handle
+                                  }) follows (as of ${moment().format(
+                                    "YYYY-MM-DD"
+                                  )}).`,
+                                },
+                              },
+                            });
+                          }}
+                        >
+                          Create list from Following
+                        </button>
+                      )}
+                      {lists.map(([id, config], index) => {
+                        const hasMember =
+                          config.behaviour.list?.includes(profile.handle) ||
+                          config.behaviour.list?.includes(
+                            "@" + profile.handle
+                          ) ||
+                          config.behaviour.list?.includes(profile.did);
+                        return (
+                          <button
+                            className={
+                              "text-left px-1 py-0.5 w-full text-base hover:bg-slate-300 dark:hover:bg-slate-600 " +
+                              BORDER_300 +
+                              (createListFromFollowsEnabled || index !== 0
+                                ? "border-t "
+                                : "")
+                            }
+                            onClick={() => {
+                              setCustomTimelineConfigs({
+                                ...customTimelineConfigs,
+                                [id]: {
+                                  ...config,
+                                  behaviour: {
+                                    ...config.behaviour,
+                                    list: hasMember
+                                      ? (config.behaviour.list || []).filter(
+                                          (l) =>
+                                            l !== profile.did &&
+                                            l !== profile.handle &&
+                                            l !== "@" + profile.handle
+                                        )
+                                      : (config.behaviour.list || []).concat(
+                                          profile.handle
+                                        ),
+                                  },
+                                },
+                              });
+                            }}
+                          >
+                            {hasMember ? "Remove from" : "Add to"} "
+                            {config.identity.name}"
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex flex-row mb-1">

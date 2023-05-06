@@ -11,6 +11,8 @@ import {
 } from "./bsky";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
 import { SkylinePostType } from "./contentTypes";
+import { Response as GetPopularResponse } from "@atproto/api/dist/client/types/app/bsky/unspecced/getPopular";
+import ListFetcher from "./fetchList";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 // INPUT:
@@ -31,7 +33,13 @@ export type TimelineConfigType = {
     description: string;
   };
   behaviour: {
-    baseFeed?: "following" | "popular" | "one-from-each";
+    baseFeed?:
+      | "following"
+      | "popular"
+      | "popular-nsfw"
+      | "one-from-each"
+      | "list";
+    list?: string[];
     mutualsOnly?: boolean;
     language?: LanguageType;
     replies?: "all" | "none";
@@ -44,11 +52,31 @@ export type TimelineConfigType = {
 export type TimelineConfigsType = {
   [id: string]: TimelineConfigType;
 };
+export const getDefaultTimelineConfig: () => TimelineConfigType = () => ({
+  meta: {
+    origin: "self",
+    createdOn: Date.now(),
+    modifiedOn: Date.now(),
+  },
+  identity: {
+    name: "",
+    description: "",
+    icon: "bolt",
+  },
+  behaviour: {
+    baseFeed: "following",
+    mutualsOnly: false,
+    negativePrompts: [],
+    positivePrompts: [],
+    replies: "all",
+    sorting: "combo",
+  },
+});
 
 // OUTPUT:
 export type ProduceFeedOutput = {
   posts: SkylinePostType[];
-  cursor: string | undefined;
+  cursor: any | undefined;
 };
 export type TimelineDefinitionType = {
   icon: string;
@@ -57,7 +85,7 @@ export type TimelineDefinitionType = {
   produceFeed: (params: {
     agent: BskyAgent;
     egoHandle: string;
-    cursor: string | undefined;
+    cursor: any;
   }) => Promise<ProduceFeedOutput>;
   postProcessFeed: (
     params: {
@@ -134,8 +162,25 @@ async function loadOneFromEachFeed(
     cursor: undefined,
   };
 }
+
+async function xrpcGetPopular(agent: BskyAgent, searchParams: object) {
+  const base = agent.api.xrpc.uri + "xrpc/app.bsky.unspecced.getPopular";
+  const search = new URLSearchParams(JSON.parse(JSON.stringify(searchParams)));
+  const url = `${base}?${search.toString()}`;
+  const response = await agent.api.xrpc.baseClient.fetch(
+    url,
+    "GET",
+    agent.api.xrpc.headers,
+    undefined
+  );
+  return {
+    success: response.status === 200,
+    data: response.body,
+    headers: response.headers,
+  } as unknown as GetPopularResponse;
+}
 async function loadBaseFeed(
-  baseFeed: "following" | "popular",
+  baseFeed: "following" | "popular" | "popular-nsfw",
   agent: BskyAgent,
   cursor?: string | undefined
 ): Promise<ProduceFeedOutput> {
@@ -145,9 +190,10 @@ async function loadBaseFeed(
           cursor,
           limit: 100,
         })
-      : await agent.api.app.bsky.unspecced.getPopular({
-          cursor,
+      : await xrpcGetPopular(agent, {
           limit: 100,
+          cursor,
+          includeNsfw: baseFeed === "popular-nsfw",
         });
 
   if (response.success) {
@@ -240,6 +286,7 @@ export function makePrincipledFeed(
 ): TimelineDefinitionType {
   const {
     baseFeed = "following",
+    list,
     mutualsOnly = false,
     language,
     positivePrompts,
@@ -266,12 +313,32 @@ export function makePrincipledFeed(
       if (mutualsOnly) mutualsPromise = getMutuals(agent, egoHandle);
 
       // Load base feed
-      let { posts, cursor: newCursor } = ["following", "popular"].includes(
-        baseFeed
-      )
-        ? await loadBaseFeed(baseFeed as "following" | "popular", agent, cursor)
-        : await loadOneFromEachFeed(agent, egoHandle, cursor);
+      let posts: SkylinePostType[] | null = null;
+      let newCursor: any | null = null;
 
+      if (baseFeed === "list") {
+        const listFetcher = new ListFetcher(
+          agent,
+          list?.map((item) => (item.startsWith("@") ? item.slice(1) : item)) ||
+            [],
+          cursor || {}
+        );
+        const result = await listFetcher.call();
+        posts = result.posts;
+        newCursor = result.raw;
+      } else if (["following", "popular", "popular-nsfw"].includes(baseFeed)) {
+        const result = await loadBaseFeed(
+          baseFeed as "following" | "popular" | "popular-nsfw",
+          agent,
+          cursor
+        );
+        posts = result.posts;
+        newCursor = result.cursor;
+      } else {
+        const result = await loadOneFromEachFeed(agent, egoHandle, cursor);
+        posts = result.posts;
+        newCursor = result.cursor;
+      }
       // 2. FILTERING
       // mutualsOnly
       if (mutualsOnly) {
