@@ -122,10 +122,18 @@ export function Post(props: {
   isLastPostInFeed?: boolean;
   isSub?: boolean;
   isStandAlone?: boolean;
+  replyButton?: boolean;
   isFirstPostInThread?: boolean;
 }) {
-  const { agent, post, hasChildren, isLastPostInFeed, isSub, isStandAlone } =
-    props;
+  const {
+    agent,
+    post,
+    hasChildren,
+    isLastPostInFeed,
+    isSub,
+    isStandAlone,
+    replyButton,
+  } = props;
 
   const author = post.postView.author;
   const embed: EmbedType | undefined = post.postView.embed as any;
@@ -282,6 +290,27 @@ export function Post(props: {
           isFirstPostInThread={isFirstPostInThread}
           isLastPostInThread={!hasChildren}
         />
+      )}
+      {replyButton && (
+        <button
+          className={
+            "w-full bg-white dark:bg-slate-800 flex flex-row items-center px-4 py-2 border-b text-slate-500 dark:text-slate-300 " +
+            BORDER_300
+          }
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setComposingPost({
+              replyingTo: {
+                parent: post.postView,
+                root: ancestorPosts.concat([post])[0]?.postView,
+              },
+              text: "",
+            });
+          }}
+        >
+          Add reply...
+        </button>
       )}
     </>
   );

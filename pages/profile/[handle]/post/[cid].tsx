@@ -66,8 +66,8 @@ export default function ThreadScreen(props: ThreadScreenProps) {
     >
       {post && replies ? (
         <>
-          <div>
-            <Post agent={agent} post={post} isStandAlone />
+          <div className="pb-4">
+            <Post agent={agent} post={post} isStandAlone replyButton />
             {replies.map((reply) => (
               <Post agent={agent} post={reply} />
             ))}
