@@ -26,6 +26,7 @@ function HorizontalSelector<T>(props: {
         const selected = id === value;
         return (
           <button
+            key={label + "|" + JSON.stringify(id)}
             className={
               "outline-none p-2 grow shrink text-center flex flex-row justify-center items-center " +
               BORDER_300 +
@@ -64,7 +65,7 @@ function PromptsList(props: {
   return (
     <>
       {prompts.map((prompt, index) => (
-        <div className="flex flex-row items-center">
+        <div className="flex flex-row items-center" key={index}>
           <input
             type="text"
             placeholder={
