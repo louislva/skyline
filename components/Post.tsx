@@ -377,6 +377,22 @@ function ContentStandalone(props: {
 
   const { setComposingPost } = useControllerContext();
 
+  const hasScrolledYetRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (rootRef.current && !hasScrolledYetRef.current && !isFirstPostInThread) {
+      hasScrolledYetRef.current = true;
+
+      const postPosition =
+        rootRef.current.getBoundingClientRect().top + window.pageYOffset;
+
+      window.scrollTo({
+        behavior: "smooth",
+        top: Math.floor(postPosition - 80),
+      });
+    }
+  }, [rootRef.current, hasScrolledYetRef.current, isFirstPostInThread]);
+
   return (
     <div
       className={
@@ -386,9 +402,7 @@ function ContentStandalone(props: {
         BORDER_300
       }
       // first render, scroll to
-      ref={(ref) => {
-        ref?.scrollIntoView();
-      }}
+      ref={rootRef}
     >
       {/* Reply / repost row */}
       {(record.reply || repostBy) && (

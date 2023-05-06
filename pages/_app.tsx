@@ -264,6 +264,7 @@ export default function App({
             <Component
               // React stuff
               {...pageProps}
+              key={router.asPath}
               // Bsky stuff
               egoHandle={egoHandle}
               egoDid={egoDid}

@@ -112,7 +112,7 @@ export default function NotificationsScreen(props: NotificationsScreenProps) {
         BORDER_300
       }
     >
-      {true ? (
+      {notifications !== null ? (
         <ul>
           {cosignedNotifications?.map((item) => (
             <Notification agent={agent} notifications={item} />

@@ -9,7 +9,7 @@ import {
   TimelineConfigsType,
   getDefaultTimelineConfig,
 } from "./makeFeeds";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export function useTimelineController(
   agent: BskyAgent,
@@ -36,8 +36,11 @@ export function useTimelineController(
     getDefaultTimelineConfigs("english")[timelineId] ||
     null;
 
+  const loadIdRef = useRef<number>(0);
+
   const loadSegment = async (direction: "down" | "up" = "down") => {
     if (!egoHandle) return;
+    const myLoadId = loadIdRef.current;
     timelineDefinition
       .produceFeed({
         agent,
@@ -45,6 +48,7 @@ export function useTimelineController(
         cursor: direction === "down" ? cursor : undefined,
       })
       .then(async (result) => {
+        if (loadIdRef.current !== myLoadId) return;
         const loadTimestamp = Date.now();
         if (direction === "up") {
           setLoadedSegments((oldLoadedSegments) => [
@@ -74,6 +78,7 @@ export function useTimelineController(
             posts: postsSliced,
           },
           (postsMerged) => {
+            if (loadIdRef.current !== myLoadId) return;
             setLoadedSegments((oldLoadedSegments) => {
               const olderPostCids = oldLoadedSegments
                 .filter(
@@ -108,6 +113,7 @@ export function useTimelineController(
   };
 
   useEffect(() => {
+    loadIdRef.current++;
     if (egoHandle) {
       setLoadedSegments([]);
       setLoading(true);
