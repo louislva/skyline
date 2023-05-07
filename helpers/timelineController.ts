@@ -27,7 +27,9 @@ export function useTimelineController(
     () => loadedSegments.flatMap((segment) => segment.posts),
     [loadedSegments]
   );
-  const cursor = loadedSegments.slice(-1)?.[0]?.cursor;
+  const cursorRef = useRef<any>();
+  cursorRef.current = loadedSegments.slice(-1)?.[0]?.cursor;
+
   const [loading, setLoading] = useState<boolean>(false);
 
   const timelineDefinition = timelineDefinitions[timelineId];
@@ -45,7 +47,7 @@ export function useTimelineController(
       .produceFeed({
         agent,
         egoHandle,
-        cursor: direction === "down" ? cursor : undefined,
+        cursor: direction === "down" ? cursorRef.current : undefined,
       })
       .then(async (result) => {
         if (loadIdRef.current !== myLoadId) return;
