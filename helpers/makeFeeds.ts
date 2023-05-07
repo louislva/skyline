@@ -1,6 +1,7 @@
 import { BskyAgent } from "@atproto/api";
 import { ProfileView } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
 import { PostView } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
+import { Response as GetPopularResponse } from "@atproto/api/dist/client/types/app/bsky/unspecced/getPopular";
 import {
   feedViewPostToSkylinePost,
   getFollows,
@@ -11,8 +12,7 @@ import {
 } from "./bsky";
 import classifyLanguage, { LanguageType } from "./classifyLanguage";
 import { SkylinePostType } from "./contentTypes";
-import { Response as GetPopularResponse } from "@atproto/api/dist/client/types/app/bsky/unspecced/getPopular";
-import ListFetcher from "./fetchList";
+import fetchList from "./fetchList";
 const cosineSimilarity = require("compute-cosine-similarity");
 
 // INPUT:
@@ -317,15 +317,14 @@ export function makePrincipledFeed(
       let newCursor: any | null = null;
 
       if (baseFeed === "list") {
-        const listFetcher = new ListFetcher(
+        const result = await fetchList(
           agent,
           list?.map((item) => (item.startsWith("@") ? item.slice(1) : item)) ||
             [],
-          cursor || {}
+          cursor
         );
-        const result = await listFetcher.call();
         posts = result.posts;
-        newCursor = result.raw;
+        newCursor = result.cursor;
       } else if (["following", "popular", "popular-nsfw"].includes(baseFeed)) {
         const result = await loadBaseFeed(
           baseFeed as "following" | "popular" | "popular-nsfw",
