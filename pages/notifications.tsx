@@ -1,7 +1,7 @@
 import { useControllerContext } from "@/components/ControllerContext";
 import { LoadMoreButton } from "@/components/LoadMoreButton";
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
-import { QuotePost } from "@/components/Post";
+import { QuotePost, QuotePostLoadingPlaceholder } from "@/components/Post";
 import { RecordType } from "@/helpers/contentTypes";
 import { BORDER_300 } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
@@ -252,20 +252,20 @@ function Notification(props: {
               },
             }}
           />
+        ) : reasonSubjectPost ? (
+          <QuotePost
+            embed={{
+              $type: "DONT NEED THIS I THINK",
+              record: {
+                author: reasonSubjectPost.author,
+                value: reasonSubjectPost.record as RecordType,
+                cid: reasonSubjectPost.cid,
+                uri: reasonSubjectPost.uri,
+              },
+            }}
+          />
         ) : (
-          reasonSubjectPost && (
-            <QuotePost
-              embed={{
-                $type: "DONT NEED THIS I THINK",
-                record: {
-                  author: reasonSubjectPost.author,
-                  value: reasonSubjectPost.record as RecordType,
-                  cid: reasonSubjectPost.cid,
-                  uri: reasonSubjectPost.uri,
-                },
-              }}
-            />
-          )
+          <QuotePostLoadingPlaceholder />
         )}
       </div>
     </li>
