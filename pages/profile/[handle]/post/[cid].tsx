@@ -47,11 +47,13 @@ export default function ThreadScreen(props: ThreadScreenProps) {
       getThreadCacheFree(agent, uri).then((response) => {
         setPost(threadResponseToSkylinePost(response));
         setReplies(
-          (response.data.thread.replies as { post: ExpandedPostView }[])?.map(
+          (response.data.thread.replies as { post: ExpandedPostView }[])
+            ?.map(
             (item): SkylinePostType => ({
               postView: item.post,
             })
           )
+            .filter((item) => item.postView)
         );
       });
     }
