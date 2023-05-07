@@ -136,24 +136,15 @@ export default function ProfileScreen(props: ProfileScreenProps) {
             />
           )}
           <div className={"flex flex-col px-2 border-b-2 " + BORDER_200}>
+            <div className="flex flex-col">
             <div className="flex flex-row">
-              <div className="flex flex-col flex-1">
                 <div className="w-20 h-20 bg-white dark:bg-black rounded-full -mt-12 p-0.5">
                   <img
                     src={profile.avatar}
                     className="w-full h-full rounded-full"
                   />
                 </div>
-                <h3 className="text-2xl">{profile.displayName}</h3>
-                <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2 flex flex-row items-center">
-                  @{profile.handle}{" "}
-                  {!!profile.viewer?.followedBy && (
-                    <span className="text-xs pb-1 pt-1.5 px-1.5 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-md ml-1 unselectable flex flex-row items-center leading-none">
-                      FOLLOWS YOU
-                    </span>
-                  )}
-                </h6>
-              </div>
+                <div className="flex-1" />
               {profile.did === egoDid ? (
                 // Log out button (if yourself)
                 <button
@@ -320,6 +311,16 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                   )}
                 </div>
               )}
+              </div>
+              <h3 className="text-2xl">{profile.displayName}</h3>
+              <h6 className="text-base text-slate-500 dark:text-slate-400 mb-2 flex flex-row items-center">
+                @{profile.handle}{" "}
+                {!!profile.viewer?.followedBy && (
+                  <span className="text-xs pb-1 pt-1.5 px-1.5 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-md ml-1 unselectable flex flex-row items-center leading-none">
+                    FOLLOWS YOU
+                  </span>
+                )}
+              </h6>
             </div>
             <div className="flex flex-row mb-1">
               <Stat count={profile.followersCount || 0} label="followers" />

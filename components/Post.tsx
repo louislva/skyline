@@ -405,30 +405,8 @@ function ContentStandalone(props: {
       // first render, scroll to
       ref={rootRef}
     >
-      {/* Reply / repost row */}
-      {(record.reply || repostBy) && (
-        <div
-          className={
-            "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 "
-          }
-        >
-          {repostBy && (
-            <>
-              <div className="material-icons mr-1">repeat</div>
-              <div>
-                Reposted by{" "}
-                <Link
-                  href={`/profile/${repostBy.handle}`}
-                  className="hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {repostBy.displayName}
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {/* Repost row */}
+      {repostBy && <RepostIndicatorRow repostBy={repostBy} />}
       {/* Profile row */}
       <ProfileRow
         showPfp
@@ -525,6 +503,25 @@ function ProfileRow(props: {
     </div>
   );
 }
+function RepostIndicatorRow(props: { repostBy: SkylinePostType["repostBy"] }) {
+  const { repostBy } = props;
+
+  return repostBy ? (
+    <div className="w-full flex flex-row items-center leading-none h-4 mb-2 text-slate-600 dark:text-slate-400">
+      <span className="material-icons mr-1">repeat</span>
+      <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis leading-none">
+        Reposted by{" "}
+        <Link
+          href={`/profile/${repostBy.handle}`}
+          className="inline hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {repostBy.displayName}
+        </Link>
+      </span>
+    </div>
+  ) : null;
+}
 function ContentInline(props: {
   agent: BskyAgent;
 
@@ -620,32 +617,7 @@ function ContentInline(props: {
       {/* Content Column */}
       <div className="relative flex flex-col flex-1 pl-3 overflow-hidden">
         {/* Reply / repost row */}
-        {repostBy && (
-          <div
-            className={
-              "flex flex-row items-center text-sm pt-2 pb-2 -mt-4 text-slate-700 dark:text-slate-300 " +
-              (record.reply && (ancestorPosts.length || isSub)
-                ? "border-t border-dashed " + BORDER_300
-                : "")
-            }
-          >
-            {repostBy && (
-              <>
-                <div className="material-icons mr-1">repeat</div>
-                <div>
-                  Reposted by{" "}
-                  <Link
-                    href={`/profile/${repostBy.handle}`}
-                    className="hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {repostBy.displayName}
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        {repostBy && <RepostIndicatorRow repostBy={repostBy} />}
         {/* Profile row */}
         <ProfileRow
           date={post.postView.indexedAt}
@@ -909,7 +881,7 @@ function ScoreIndicator(props: { score: number | undefined }) {
       <div className="text-slate-400">
         {/* {(score * 100).toFixed(2)} */}
         {(Math.pow(Math.abs(score), 0.3) * Math.sign(score) * 100).toFixed(0)}%
-        match
+        <span className="hidden sm:inline"> match</span>
       </div>
     </div>
   ) : (
