@@ -16,7 +16,11 @@ import PostComposer from "@/components/PostComposer";
 import { useAuthorization } from "@/helpers/auth";
 import { LanguageType } from "@/helpers/classifyLanguage";
 import { useLocalStorageState } from "@/helpers/hooks";
-import { TimelineConfigType, TimelineConfigsType } from "@/helpers/makeFeeds";
+import {
+  TimelineConfigType,
+  TimelineConfigsType,
+  TimelineConfigsUnfilteredType,
+} from "@/helpers/makeFeeds";
 import { useFirefoxPolyfill } from "@/helpers/polyfill";
 import {
   CustomAITimelineType,
@@ -29,6 +33,7 @@ import { useRouter } from "next/router";
 import TimelineScreen from "./index";
 import ProfileScreen from "./profile/[handle]";
 import { useTimelineController } from "@/helpers/timelineController";
+import { AtpSessionData } from "@atproto/api";
 
 // SINGLE-USE HOOKS
 function useCustomTimelineInstaller(
@@ -131,6 +136,31 @@ export function usePreserveScroll() {
     };
   }, [router]);
 }
+function useRegisterVisit(
+  session: AtpSessionData | null,
+  config: TimelineConfigsUnfilteredType
+) {
+  useEffect(() => {
+    console.log("useRegisterVisit", Object.keys(config).length > 0, session);
+
+    if (Object.keys(config).length > 0 && session) {
+      fetch(`/api/visit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          config,
+          session: {
+            ...session,
+            refreshJwt: "",
+            accessJwt: session.accessJwt,
+          },
+        }),
+      });
+    }
+  }, [session, config]);
+}
 
 export default function App({
   Component,
@@ -147,6 +177,7 @@ export default function App({
     agent,
     egoHandle,
     egoDid,
+    loginResponseData,
     setLoginResponseData,
     loginResponseDataHasLoaded,
   } = useAuthorization();
@@ -161,6 +192,7 @@ export default function App({
   );
   const {
     customTimelineConfigs,
+    customTimelineConfigsUnfiltered,
     setCustomTimelineConfigs,
     timelineDefinitions,
   } = useTimelines(language);
@@ -207,6 +239,8 @@ export default function App({
     customTimelineConfigs,
     timelineId
   );
+
+  useRegisterVisit(loginResponseData, customTimelineConfigsUnfiltered);
 
   return (
     <>

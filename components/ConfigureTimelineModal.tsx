@@ -3,6 +3,7 @@ import {
   DEFAULT_BEHAVIOUR,
   TimelineConfigType,
   TimelineConfigsType,
+  TimelineConfigsUnfilteredType,
   getDefaultTimelineConfig,
 } from "@/helpers/makeFeeds";
 import { behaviourToDescription } from "@/helpers/timelines";
@@ -142,7 +143,7 @@ function PromptsList(props: {
 }
 export default function ConfigureTimelineModal(props: {
   customTimelineConfigs: TimelineConfigsType;
-  setCustomTimelineConfigs: (value: TimelineConfigsType) => void;
+  setCustomTimelineConfigs: (value: TimelineConfigsUnfilteredType) => void;
   close: () => void;
   editingCustomAITimelineId: string | null;
   setTimelineId: (id: string) => void;
@@ -342,8 +343,8 @@ export default function ConfigureTimelineModal(props: {
                 ) {
                   const newCustomTimelineConfigs = {
                     ...customTimelineConfigs,
+                    [editingCustomAITimelineId]: null,
                   };
-                  delete newCustomTimelineConfigs[editingCustomAITimelineId];
                   setCustomTimelineConfigs(newCustomTimelineConfigs);
                   setTimelineId("following");
                   close();

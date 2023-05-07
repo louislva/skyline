@@ -3,6 +3,7 @@ import { useLocalStorageState } from "@/helpers/hooks";
 import {
   TimelineConfigType,
   TimelineConfigsType,
+  TimelineConfigsUnfilteredType,
   TimelineDefinitionType,
   makePrincipledFeed,
 } from "@/helpers/makeFeeds";
@@ -118,12 +119,21 @@ export function getDefaultTimelineConfigs(
 
 export function useTimelines(language: LanguageType): {
   customTimelineConfigs: TimelineConfigsType;
-  setCustomTimelineConfigs: (configs: TimelineConfigsType) => void;
+  customTimelineConfigsUnfiltered: TimelineConfigsUnfilteredType;
+  setCustomTimelineConfigs: (configs: TimelineConfigsUnfilteredType) => void;
   timelineDefinitions: TimelineDefinitionsType;
 } {
   const defaultTimelineConfigs = getDefaultTimelineConfigs(language);
-  const [customTimelineConfigs, setCustomTimelineConfigs] =
-    useLocalStorageState<TimelineConfigsType>("@customTimelineConfigs", {});
+  const [customTimelineConfigsUnfiltered, setCustomTimelineConfigsUnfiltered] =
+    useLocalStorageState<TimelineConfigsUnfilteredType>(
+      "@customTimelineConfigs",
+      {}
+    );
+  const customTimelineConfigs: TimelineConfigsType = Object.fromEntries(
+    Object.entries(customTimelineConfigsUnfiltered).filter(
+      ([key, config]) => config !== null
+    ) as [string, TimelineConfigType][]
+  );
   const timelineConfigs = {
     ...defaultTimelineConfigs,
     ...customTimelineConfigs,
@@ -138,7 +148,8 @@ export function useTimelines(language: LanguageType): {
 
   return {
     customTimelineConfigs,
-    setCustomTimelineConfigs,
+    customTimelineConfigsUnfiltered,
+    setCustomTimelineConfigs: setCustomTimelineConfigsUnfiltered,
     timelineDefinitions,
   };
 }

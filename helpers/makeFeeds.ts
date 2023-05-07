@@ -49,6 +49,9 @@ export type TimelineConfigType = {
     minimumScore?: number;
   };
 };
+export type TimelineConfigsUnfilteredType = {
+  [id: string]: TimelineConfigType | null;
+};
 export type TimelineConfigsType = {
   [id: string]: TimelineConfigType;
 };

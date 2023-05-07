@@ -63,6 +63,7 @@ export function useAuthorization() {
     agent,
     egoHandle,
     egoDid,
+    loginResponseData,
     setLoginResponseData,
     loginResponseDataHasLoaded,
   };
