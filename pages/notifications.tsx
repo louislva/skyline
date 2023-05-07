@@ -252,21 +252,23 @@ function Notification(props: {
               },
             }}
           />
-        ) : reasonSubjectPost ? (
-          <QuotePost
-            embed={{
-              $type: "DONT NEED THIS I THINK",
-              record: {
-                author: reasonSubjectPost.author,
-                value: reasonSubjectPost.record as RecordType,
-                cid: reasonSubjectPost.cid,
-                uri: reasonSubjectPost.uri,
-              },
-            }}
-          />
-        ) : (
-          <QuotePostLoadingPlaceholder />
-        )}
+        ) : ["like", "repost"].includes(notification.reason) ? (
+          reasonSubjectPost ? (
+            <QuotePost
+              embed={{
+                $type: "DONT NEED THIS I THINK",
+                record: {
+                  author: reasonSubjectPost.author,
+                  value: reasonSubjectPost.record as RecordType,
+                  cid: reasonSubjectPost.cid,
+                  uri: reasonSubjectPost.uri,
+                },
+              }}
+            />
+          ) : (
+            <QuotePostLoadingPlaceholder />
+          )
+        ) : null}
       </div>
     </li>
   );
