@@ -53,9 +53,10 @@ export default function ProfileScreen(props: ProfileScreenProps) {
 
   const [profile, setProfile] = useState<ProfileViewDetailed | null>(null);
   const [isFollowing, setIsFollowing] = useState<string | false | null>(null);
-  const [posts_, setPosts] = useState<SkylinePostType[]>([]);
+  const [posts_, setPosts] = useState<SkylinePostType[] | null>(null);
   const posts =
-    selectedView === "media" ? posts_ : mergeConversationsInstant(posts_);
+    posts_ &&
+    (selectedView === "media" ? posts_ : mergeConversationsInstant(posts_));
   const [postsCursor, setPostsCursor] = useState<string | undefined>();
 
   const loadProfile = async () => {
@@ -77,7 +78,9 @@ export default function ProfileScreen(props: ProfileScreenProps) {
         cursor: postsCursor,
       });
       setPostsCursor(result.data.cursor);
-      setPosts(posts.concat(result.data.feed.map(feedViewPostToSkylinePost)));
+      setPosts(
+        (posts || []).concat(result.data.feed.map(feedViewPostToSkylinePost))
+      );
       setLoading(false);
     }
   };
@@ -352,7 +355,8 @@ export default function ProfileScreen(props: ProfileScreenProps) {
             </div>
           </div>
           <div>
-            {posts
+            {posts ? (
+              posts
               .filter((post) => {
                 if (selectedView === "replies") return true;
                 else if (selectedView === "media")
@@ -369,9 +373,10 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                     post.replyingTo?.[0]?.postView.author.handle === handle
                   );
               })
-              .map((post) => (
-                <Post agent={agent} post={post} />
-              ))}
+                .map((post) => <Post agent={agent} post={post} />)
+            ) : (
+              <LoadingPlaceholder />
+            )}
           </div>
         </>
       ) : (
