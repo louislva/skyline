@@ -229,6 +229,14 @@ export default function App({
       agent.app.bsky.notification
         .getUnreadCount()
         .then((result) => setNotificationsCount(result.data.count));
+
+      const interval = setInterval(() => {
+        agent.app.bsky.notification
+          .getUnreadCount()
+          .then((result) => setNotificationsCount(result.data.count));
+      }, 60 * 1000);
+
+      return () => clearInterval(interval);
     }
   }, [egoHandle]);
 

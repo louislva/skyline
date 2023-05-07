@@ -1,3 +1,4 @@
+import { LoadMoreButton } from "@/components/LoadMoreButton";
 import { LoadingPlaceholder } from "@/components/LoadingSpinner";
 import Post from "@/components/Post";
 import RichTextReact from "@/components/RichTextReact";
@@ -356,7 +357,8 @@ export default function ProfileScreen(props: ProfileScreenProps) {
           </div>
           <div>
             {posts ? (
-              posts
+              <>
+                {posts
               .filter((post) => {
                 if (selectedView === "replies") return true;
                 else if (selectedView === "media")
@@ -373,7 +375,16 @@ export default function ProfileScreen(props: ProfileScreenProps) {
                     post.replyingTo?.[0]?.postView.author.handle === handle
                   );
               })
-                .map((post) => <Post agent={agent} post={post} />)
+                  .map((post) => (
+                    <Post agent={agent} post={post} />
+                  ))}
+                <LoadMoreButton
+                  loadMore={() => {
+                    loadPosts();
+                  }}
+                  loading={loading}
+                />
+              </>
             ) : (
               <LoadingPlaceholder />
             )}
