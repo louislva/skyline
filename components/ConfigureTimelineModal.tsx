@@ -6,9 +6,10 @@ import {
   TimelineConfigsUnfilteredType,
   getDefaultTimelineConfig,
 } from "@/helpers/makeFeeds";
-import { behaviourToDescription } from "@/helpers/timelines";
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
-import { useRef, useState } from "react";
+import { behaviourToDescription } from "@/helpers/timelines";
+import { BskyAgent } from "@atproto/api";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 function HorizontalSelector<T>(props: {
   value: T;
@@ -55,36 +56,188 @@ function HorizontalSelector<T>(props: {
   );
 }
 
-function PromptsList(props: {
+const InputWithUserHandleSuggestions = forwardRef(
+  (
+    props: React.HTMLProps<HTMLInputElement> & {
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      suggestUserHandles?: boolean;
+      agent?: BskyAgent;
+      value: string;
+    },
+    ref
+  ) => {
+    const { agent, suggestUserHandles } = props;
+    const [value, setValue] = useState<string>(props.value);
+    const [sugggestions, setSuggestions] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestionSelectIndex, setSuggestionSelectIndex] = useState(-1);
+    const [suggestionHasBeenAccepted, setSuggestionHasBeenAccepted] =
+      useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+
+    useEffect(() => {
+      if (sugggestions.length === 1) setSuggestionSelectIndex(0);
+      else setSuggestionSelectIndex(-1);
+    }, [sugggestions]);
+
+    useEffect(() => {
+      const timeout = setTimeout(async () => {
+        if (
+          agent &&
+          suggestUserHandles &&
+          !suggestionHasBeenAccepted &&
+          isFocused
+        ) {
+          const term = value.startsWith("@") ? value.slice(1) : value;
+
+          const response = await agent.app.bsky.actor.searchActorsTypeahead({
+            limit: 5,
+            term,
+          });
+          if (response.success) {
+            const handles = response.data.actors
+              .map((item) => item.handle)
+              .filter((suggestion) => suggestion.startsWith(term));
+            setSuggestions(handles);
+            setShowSuggestions(handles.length > 0);
+          }
+        }
+      }, 80);
+
+      return () => clearTimeout(timeout);
+    }, [
+      props.value,
+      agent,
+      suggestUserHandles,
+      suggestionHasBeenAccepted,
+      isFocused,
+    ]);
+
+    useEffect(() => {
+      setSuggestionHasBeenAccepted(false);
+    }, [value]);
+
+    const applySuggestion = (index: number) => {
+      props.onChange?.({
+        target: {
+          value: "@" + sugggestions[index],
+        },
+      } as any);
+      setShowSuggestions(false);
+      setSuggestionHasBeenAccepted(true);
+    };
+
+    return (
+      <div className="flex-1 relative">
+        <input
+          {...props}
+          ref={ref as any}
+          onChange={async (e) => {
+            props.onChange?.(e);
+            setValue(e.target.value);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            setShowSuggestions(false);
+          }}
+          onFocus={() => {
+            setIsFocused(true);
+          }}
+          onKeyDown={(e) => {
+            if (sugggestions.length > 0 && showSuggestions) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSuggestionSelectIndex(
+                  (suggestionSelectIndex + 1) % sugggestions.length
+                );
+                return;
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSuggestionSelectIndex(
+                  suggestionSelectIndex === 0
+                    ? sugggestions.length - 1
+                    : suggestionSelectIndex - 1
+                );
+                return;
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                applySuggestion(suggestionSelectIndex);
+                return;
+              }
+            }
+            props.onKeyDown?.(e as any);
+          }}
+        />
+        {showSuggestions && (
+          <div
+            className={
+              "absolute w-full z-20 rounded-md -mt-2 border-2 " +
+              INPUT_CLASSNAME
+            }
+          >
+            {sugggestions.map((userHandle, index) => (
+              <button
+                key={userHandle}
+                className={
+                  "w-full h-8 " +
+                  (suggestionSelectIndex === index
+                    ? "bg-black/10 dark:bg-white/10"
+                    : "")
+                }
+                onMouseEnter={() => setSuggestionSelectIndex(index)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  applySuggestion(index);
+                }}
+              >
+                {userHandle}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+function InputsList(props: {
   placeholder: string | string[];
   prompts: string[];
   setPrompts: (prompts: string[]) => void;
+
+  agent?: BskyAgent;
+  suggestUserHandles?: boolean;
 }) {
-  const { placeholder, prompts, setPrompts } = props;
+  const { placeholder, prompts, setPrompts, agent, suggestUserHandles } = props;
   const inputsRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   return (
     <>
       {prompts.map((prompt, index) => (
         <div className="flex flex-row items-center" key={index}>
-          <input
+          <InputWithUserHandleSuggestions
+            agent={agent}
+            suggestUserHandles
             type="text"
             placeholder={
               typeof placeholder === "string"
                 ? placeholder
                 : placeholder[index % placeholder.length]
             }
-            className={"h-10 flex-1 rounded-md p-2 " + INPUT_CLASSNAME}
+            className={"h-10 w-full rounded-md p-2 " + INPUT_CLASSNAME}
             value={prompt}
             onChange={(e) => {
               setPrompts(
                 prompts
                   .slice(0, index)
+                  // @ts-ignore
                   .concat([e.target.value])
                   .concat(prompts.slice(index + 1))
               );
             }}
             ref={(input) => {
+              // @ts-ignore
               inputsRefs.current[index] = input;
             }}
             onKeyDown={(e) => {
@@ -142,6 +295,7 @@ function PromptsList(props: {
   );
 }
 export default function ConfigureTimelineModal(props: {
+  agent: BskyAgent;
   customTimelineConfigs: TimelineConfigsType;
   setCustomTimelineConfigs: (value: TimelineConfigsUnfilteredType) => void;
   close: () => void;
@@ -149,6 +303,7 @@ export default function ConfigureTimelineModal(props: {
   setTimelineId: (id: string) => void;
 }) {
   const {
+    agent,
     customTimelineConfigs,
     setCustomTimelineConfigs,
     close,
@@ -232,7 +387,9 @@ export default function ConfigureTimelineModal(props: {
             <label className="flex flex-row items-center mt-0">
               List members
             </label>
-            <PromptsList
+            <InputsList
+              agent={agent}
+              suggestUserHandles
               placeholder={[
                 "@thearchduke.bsky.social",
                 "@louis02x.com",
@@ -293,7 +450,7 @@ export default function ConfigureTimelineModal(props: {
           I want to see more of...
           <span className="material-icons text-green-600 ml-1">thumb_up</span>
         </label>
-        <PromptsList
+        <InputsList
           placeholder="Wholesome tweets, kindness, love, fun banter"
           prompts={positivePrompts}
           setPrompts={setPositivePrompts}
@@ -302,7 +459,7 @@ export default function ConfigureTimelineModal(props: {
           I want to see less of...
           <span className="material-icons text-red-600 ml-1">thumb_down</span>
         </label>
-        <PromptsList
+        <InputsList
           placeholder="Angry tweets, like tweets with politics, dating discourse, dunks"
           prompts={negativePrompts}
           setPrompts={setNegativePrompts}

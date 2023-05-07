@@ -322,6 +322,7 @@ export default function App({
             />
             {(createTimelineModal || editingCustomAITimelineId) && (
               <ConfigureTimelineModal
+                agent={agent}
                 customTimelineConfigs={customTimelineConfigs}
                 setCustomTimelineConfigs={setCustomTimelineConfigs}
                 close={() => {
