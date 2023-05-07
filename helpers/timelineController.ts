@@ -28,7 +28,7 @@ export function useTimelineController(
     [loadedSegments]
   );
   const cursorRef = useRef<any>();
-  cursorRef.current = loadedSegments.slice(-1)?.[0]?.cursor;
+  cursorRef.current = loadedSegments.slice(-1)?.[0]?.cursor || undefined;
 
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -118,6 +118,7 @@ export function useTimelineController(
     loadIdRef.current++;
     if (egoHandle) {
       setLoadedSegments([]);
+      cursorRef.current = undefined;
       setLoading(true);
 
       loadSegment();
