@@ -8,6 +8,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import RichTextReact from "./RichTextReact";
 import { useRouter } from "next/router";
 import { useControllerContext } from "./ControllerContext";
+import LoadingSpinner from "./LoadingSpinner";
 
 type ImageType = {
   alt: string;
@@ -428,36 +429,13 @@ function ContentStandalone(props: {
           )}
         </div>
       )}
-
       {/* Profile row */}
-      <div className="flex flex-row ">
-        <Link
-          href={`/profile/${author.handle}`}
-          className="flex flex-row hover:underline"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Pfp */}
-          {author.avatar && (
-            <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
-              <img src={author.avatar} alt={author.name + "'s avatar"} />
-            </div>
-          )}
-          {/* Name / handle */}
-          <div className="flex flex-col">
-            <div className="font-semibold">{author.displayName}</div>
-            <div className="text-slate-500 dark:text-slate-400">
-              {author.handle ===
-              "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
-                ? "i'm an asshole 💩"
-                : "@" + author.handle}
-            </div>
-          </div>
-        </Link>
-        {/* timestamp */}
-        <div className="flex-grow text-right text-slate-500 dark:text-slate-400">
-          {moment(post.postView.indexedAt).fromNow()}
-        </div>
-      </div>
+      <ProfileRow
+        showPfp
+        date={post.postView.indexedAt}
+        author={author}
+        profileLink={`/profile/${author.handle}`}
+      />
       {/* Content row */}
       <div className="mt-2">
         <RichTextReact agent={agent} text={record.text || ""} />
@@ -505,6 +483,48 @@ function ContentStandalone(props: {
   );
 }
 
+function ProfileRow(props: {
+  showPfp?: boolean;
+  profileLink: string;
+  author: SkylinePostType["postView"]["author"];
+  date: string | Date | number;
+}) {
+  const { showPfp, profileLink, author, date } = props;
+
+  return (
+    <div className="flex flex-row leading-tight">
+      <Link
+        href={profileLink}
+        className="flex-1 flex flex-row hover:underline overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Pfp */}
+        {showPfp && author.avatar && (
+          <div className="w-12 h-12 mr-3 rounded-full overflow-hidden">
+            <img src={author.avatar} alt={author.name + "'s avatar"} />
+          </div>
+        )}
+        <div className="flex-1 flex flex-col items-stretch overflow-hidden">
+          {/* Top row */}
+          <div className="flex flex-row">
+            {/* Name */}
+            <div className="font-semibold mr-1.5 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
+              {author.displayName}{" "}
+            </div>
+            {/* Date */}
+            <div className="text-slate-500 dark:text-slate-400 pl-1">
+              {moment(date).fromNow()}
+            </div>
+          </div>
+          {/* Bottom row (handle) */}
+          <div className="w-full text-slate-500 dark:text-slate-400 overflow-hidden whitespace-nowrap text-ellipsis">
+            {"@" + author.handle}
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
 function ContentInline(props: {
   agent: BskyAgent;
 
@@ -598,7 +618,7 @@ function ContentInline(props: {
         )}
       </div>
       {/* Content Column */}
-      <div className="relative flex flex-col flex-1 pl-3">
+      <div className="relative flex flex-col flex-1 pl-3 overflow-hidden">
         {/* Reply / repost row */}
         {repostBy && (
           <div
@@ -627,26 +647,11 @@ function ContentInline(props: {
           </div>
         )}
         {/* Profile row */}
-        <div className="flex flex-row leading-tight">
-          <Link
-            href={profileLink}
-            className="flex-1 flex flex-row flex-wrap hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Name / handle */}
-            <div className="font-semibold mr-1.5">{author.displayName}</div>
-            <div className="text-slate-500 dark:text-slate-400">
-              {author.handle ===
-              "deepfates.com.deepfates.com.deepfates.com.deepfates.com.deepfates.com"
-                ? "i'm an asshole 💩"
-                : "@" + author.handle}
-            </div>
-          </Link>
-          {/* timestamp */}
-          <div className="text-slate-500 dark:text-slate-400">
-            {moment(post.postView.indexedAt).fromNow()}
-          </div>
-        </div>
+        <ProfileRow
+          date={post.postView.indexedAt}
+          author={author}
+          profileLink={profileLink}
+        />
         {/* Content row */}
         <div className="mt-2 break-words">
           <RichTextReact agent={agent} text={record.text || ""} />
@@ -716,7 +721,7 @@ export function QuotePost(props: { embed: EmbedType; linkDisabled?: boolean }) {
           @{record?.author.handle}
         </span>
       </div>
-      <div className="bg-blue-4000">
+      <div className="">
         {record?.value?.text?.split("\n").map((line, index) => (
           <Fragment key={line + "$" + index}>
             {index !== 0 && <br />}
@@ -728,6 +733,24 @@ export function QuotePost(props: { embed: EmbedType; linkDisabled?: boolean }) {
   );
 
   return linkDisabled ? body : <Link href={link}>{body}</Link>;
+}
+export function QuotePostLoadingPlaceholder() {
+  return (
+    <div
+      className={
+        "mt-2 border rounded-md h-24 text-sm flex flex-row items-center justify-center  " +
+        BORDER_300
+      }
+    >
+      <LoadingSpinner
+        containerClassName="w-6 h-6 mr-2"
+        dotClassName="bg-slate-800 dark:bg-slate-400"
+      />
+      <div className="text-slate-800 dark:text-slate-400 text-lg">
+        Loading...
+      </div>
+    </div>
+  );
 }
 
 function ReplyButton(props: {
