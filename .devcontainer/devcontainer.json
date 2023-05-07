@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/devcontainer.json. 
+{
+	"name": "Skyline Dev Container",
+	"dockerComposeFile": "docker-compose.yml",
+	"workspaceFolder": "/workspace",
+	"service": "skylineapp",
+	"forwardPorts": [
+		3000,
+		5432
+	],
+	"portsAttributes": {
+		"7071": {
+			"protocol": "http",
+			"label": "Skyline App"
+		},
+		"5432": {
+			"label": "Postgres"
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ckolkman.vscode-postgres"
+			]
+		}
+	},
+	"postCreateCommand": "yarn install",
+	"remoteUser": "root"
+}
