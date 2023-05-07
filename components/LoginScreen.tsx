@@ -1,5 +1,6 @@
 import { BORDER_300, INPUT_CLASSNAME } from "@/helpers/styling";
 import { BskyAgent } from "@atproto/api";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function LoginScreen(props: { agent: BskyAgent }) {
@@ -60,6 +61,21 @@ export default function LoginScreen(props: { agent: BskyAgent }) {
             Login
           </button>
         </form>
+        <div className="flex flex-col mt-4 text-sm max-w-sm items-center px-2">
+          <span className="material-icons mb-1 text-lg">info</span>
+          <div className="text-center">
+            Tip: Create an{" "}
+            <Link
+              href="https://staging.bsky.app/settings/app-passwords"
+              target="_blank"
+              className="underline text-blue-500"
+            >
+              App Password
+            </Link>{" "}
+            on the official Bluesky client, so you don't have to share your real
+            password with a third party (us!)
+          </div>
+        </div>
         {error && <p className="text-red-500 mt-4">{error}</p>}
       </div>
       {/* Security policy section */}
