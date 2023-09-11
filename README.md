@@ -1,8 +1,10 @@
-# Skyline
+# [Skyline](https://skyline.gay/)
 
 ✨ Bring your own algorithm for Bluesky ✨
 
-Skyline allows you to create your own AI algo-feeds OR use one of our pre-defined ones. [Try it out here!](https://skyline.gay/)
+Skyline allows you to create your own AI algo-feeds (or use one of our pre-defined ones). [Try it out here!](https://skyline.gay/)
+
+My goal with this project was to create a social media [that makes you happy](https://louis02x.com/blog/skyline), not just optimizes engagement.
 
 We have the following feeds:
 
